@@ -60,9 +60,8 @@ func TestSetupWithDefaults(t *testing.T) {
 	logger := logging.L()
 	logger.Info("test message", logging.Path("/var/log/app.log"))
 
-	// Sync and reset to release file handles on Windows
-	logging.Sync()
-	logging.Setup(&logging.Config{EnableFile: false, EnableConsole: false})
+	// Close to release file handles on Windows
+	logging.Close()
 
 	// Verify log file was created
 	logPath := filepath.Join(tmpDir, "test.jsonl")
@@ -90,7 +89,7 @@ func TestLoggerOutputsJSONL(t *testing.T) {
 
 	logger := logging.L()
 	logger.Info("test_event", logging.Count(42), logging.Path("/test/path"))
-	logging.Sync()
+	logging.Close()
 
 	// Read and parse the log file
 	logPath := filepath.Join(tmpDir, "jsonl-test.jsonl")
@@ -150,7 +149,7 @@ func TestLoggerWithContext(t *testing.T) {
 	// Create child logger with context
 	logger := logging.WithContext("req-123", "ingestion")
 	logger.Info("processing_started")
-	logging.Sync()
+	logging.Close()
 
 	// Read and verify context fields
 	logPath := filepath.Join(tmpDir, "context-test.jsonl")
@@ -259,7 +258,7 @@ func TestLogLevels(t *testing.T) {
 			}
 
 			tc.logFunc()
-			logging.Sync()
+			logging.Close()
 
 			logPath := filepath.Join(tmpDir, logFile)
 			content, err := os.ReadFile(logPath)
@@ -297,7 +296,7 @@ func TestSugaredLogger(t *testing.T) {
 		"key1", "value1",
 		"key2", 42,
 	)
-	logging.Sync()
+	logging.Close()
 
 	logPath := filepath.Join(tmpDir, "sugar-test.jsonl")
 	content, err := os.ReadFile(logPath)
@@ -338,7 +337,7 @@ func TestLogDirectoryCreation(t *testing.T) {
 	}
 
 	logging.L().Info("test")
-	logging.Sync()
+	logging.Close()
 
 	// Verify nested directory was created
 	if _, err := os.Stat(nestedDir); os.IsNotExist(err) {

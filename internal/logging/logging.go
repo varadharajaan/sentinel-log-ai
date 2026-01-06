@@ -114,6 +114,12 @@ func Setup(cfg *Config) error {
 
 	var cores []zapcore.Core
 
+	// Close any existing file writer before setting up new one
+	if fileWriter != nil {
+		fileWriter.Close()
+		fileWriter = nil
+	}
+
 	// File core with rotation
 	if cfg.EnableFile {
 		// Ensure log directory exists
@@ -123,7 +129,7 @@ func Setup(cfg *Config) error {
 		}
 
 		// Rotating file writer using lumberjack
-		fileWriter := &lumberjack.Logger{
+		fileWriter = &lumberjack.Logger{
 			Filename:   logPath,
 			MaxSize:    cfg.MaxSizeMB,
 			MaxBackups: cfg.MaxBackups,
@@ -212,6 +218,22 @@ func WithContext(requestID string, operationType string) *zap.Logger {
 func Sync() error {
 	if globalLogger != nil {
 		return globalLogger.Sync()
+	}
+	return nil
+}
+
+// Close closes the file writer and releases resources.
+// Call this in tests to avoid file locking issues on Windows.
+func Close() error {
+	if globalLogger != nil {
+		globalLogger.Sync()
+		globalLogger = nil
+		globalSugar = nil
+	}
+	if fileWriter != nil {
+		err := fileWriter.Close()
+		fileWriter = nil
+		return err
 	}
 	return nil
 }
