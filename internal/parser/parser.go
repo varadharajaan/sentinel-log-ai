@@ -2,6 +2,7 @@
 package parser
 
 import (
+	"encoding/json"
 	"regexp"
 	"strings"
 	"time"
@@ -83,20 +84,37 @@ func (p *JSONParser) CanParse(line string) bool {
 
 // Parse parses a JSON log line.
 func (p *JSONParser) Parse(line string, source string) (*models.LogRecord, bool) {
-	record, err := models.FromJSON([]byte(line))
-	if err != nil {
+	// First parse the raw JSON to get all fields
+	var jsonData map[string]any
+	if err := json.Unmarshal([]byte(line), &jsonData); err != nil {
 		return nil, false
 	}
-	record.Source = source
-	record.Raw = line
-	if record.Message == "" {
-		// Try common JSON log fields
-		if msg, ok := record.Attrs["msg"].(string); ok {
-			record.Message = msg
-		} else if msg, ok := record.Attrs["message"].(string); ok {
-			record.Message = msg
+
+	record := &models.LogRecord{
+		Source: source,
+		Raw:    line,
+		Attrs:  jsonData,
+	}
+
+	// Extract message from common fields
+	if msg, ok := jsonData["message"].(string); ok {
+		record.Message = msg
+	} else if msg, ok := jsonData["msg"].(string); ok {
+		record.Message = msg
+	}
+
+	// Extract level
+	if level, ok := jsonData["level"].(string); ok {
+		record.Level = level
+	}
+
+	// Extract timestamp
+	if ts, ok := jsonData["timestamp"].(string); ok {
+		if t, err := parseFlexibleTimestamp(ts); err == nil {
+			record.Timestamp = &t
 		}
 	}
+
 	return record, true
 }
 
@@ -255,9 +273,10 @@ func (p *PythonTracebackParser) Name() string {
 
 // CanParse checks if the line looks like a Python error.
 func (p *PythonTracebackParser) CanParse(line string) bool {
+	trimmed := strings.TrimSpace(line)
 	return p.errorPattern.MatchString(line) ||
-		strings.HasPrefix(strings.TrimSpace(line), "File \"") ||
-		strings.HasPrefix(strings.TrimSpace(line), "    ")
+		strings.HasPrefix(trimmed, "File \"") ||
+		(strings.HasPrefix(line, "    ") && len(trimmed) > 0)
 }
 
 // Parse parses a Python traceback line.
