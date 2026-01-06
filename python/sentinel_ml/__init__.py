@@ -10,4 +10,12 @@ This package provides the AI/ML capabilities for log analysis:
 """
 
 __version__ = "0.1.0"
-__all__ = ["models", "embeddings", "clustering", "novelty", "llm", "server"]
+__all__ = [
+    "config",
+    "exceptions",
+    "logging",
+    "models",
+    "normalization",
+    "parser",
+    "server",
+]
