@@ -275,9 +275,9 @@ class PreprocessingPipeline:
                     stage=stage.name,
                     error=str(e),
                 )
-                raise PreprocessingError(
-                    f"Stage '{stage.name}' failed: {e}",
-                    record_id=record.id,
+                raise PreprocessingError.stage_failed(
+                    stage_name=stage.name,
+                    reason=str(e),
                 ) from e
 
         self._stats.records_output += 1
