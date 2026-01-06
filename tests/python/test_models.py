@@ -32,7 +32,7 @@ class TestLogRecord:
 
     def test_create_full(self) -> None:
         """Test creating a LogRecord with all fields."""
-        now = datetime.utcnow()
+        now = datetime.now()
         record = LogRecord(
             id="log-123",
             message="Connection failed",

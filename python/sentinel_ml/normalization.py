@@ -45,8 +45,17 @@ class NormalizationPipeline:
 
     @staticmethod
     def _default_rules() -> list[MaskingRule]:
-        """Create the default set of masking rules."""
+        """Create the default set of masking rules.
+        
+        Order matters! More specific patterns should come before general ones.
+        """
         return [
+            # URLs (must be before paths to avoid partial matching)
+            MaskingRule(
+                name="url",
+                pattern=re.compile(r"https?://[^\s]+"),
+                replacement="<url>",
+            ),
             # ISO timestamps: 2024-01-15T10:30:00.123Z
             MaskingRule(
                 name="iso_timestamp",
@@ -97,17 +106,17 @@ class NormalizationPipeline:
                 ),
                 replacement="<ip>",
             ),
-            # Hex tokens (8+ chars): 0x1234abcd, 1234abcdef
+            # Email addresses
             MaskingRule(
-                name="hex_token",
-                pattern=re.compile(r"\b(?:0x)?[0-9a-fA-F]{8,}\b"),
-                replacement="<hex>",
+                name="email",
+                pattern=re.compile(r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b"),
+                replacement="<email>",
             ),
-            # Long numbers (5+ digits): 123456, 1234567890
+            # File paths (Unix-style)
             MaskingRule(
-                name="long_number",
-                pattern=re.compile(r"\b\d{5,}\b"),
-                replacement="<num>",
+                name="unix_path",
+                pattern=re.compile(r"(?:/[a-zA-Z0-9._-]+){2,}"),
+                replacement="<path>",
             ),
             # Shorter numbers with context (port numbers, PIDs, etc.)
             MaskingRule(
@@ -121,23 +130,17 @@ class NormalizationPipeline:
                 pattern=re.compile(r"(?:pid[=: ]+|PID[=: ]+|\[)\d+(?:\])?"),
                 replacement="<pid>",
             ),
-            # File paths (Unix-style)
+            # Hex tokens with 0x prefix (must contain letters to distinguish from pure numbers)
             MaskingRule(
-                name="unix_path",
-                pattern=re.compile(r"(?:/[a-zA-Z0-9._-]+){2,}"),
-                replacement="<path>",
+                name="hex_token",
+                pattern=re.compile(r"\b0x[0-9a-fA-F]{4,}\b|\b[0-9a-fA-F]*[a-fA-F][0-9a-fA-F]*\b(?=.*[0-9])"),
+                replacement="<hex>",
             ),
-            # Email addresses
+            # Long numbers (5+ digits): 123456, 1234567890
             MaskingRule(
-                name="email",
-                pattern=re.compile(r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b"),
-                replacement="<email>",
-            ),
-            # URLs
-            MaskingRule(
-                name="url",
-                pattern=re.compile(r"https?://[^\s]+"),
-                replacement="<url>",
+                name="long_number",
+                pattern=re.compile(r"\b\d{5,}\b"),
+                replacement="<num>",
             ),
         ]
 

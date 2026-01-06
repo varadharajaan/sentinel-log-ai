@@ -17,6 +17,8 @@ from pydantic import BaseModel, Field
 class LogRecord(BaseModel):
     """Canonical log record used across ingestion, ML, storage, and explanation."""
 
+    model_config = {"ser_json_timedelta": "iso8601"}
+
     id: str | None = Field(default=None, description="Unique identifier for this record")
     message: str = Field(..., description="Main log message content")
     normalized: str | None = Field(default=None, description="Normalized/masked message for ML")
@@ -25,9 +27,6 @@ class LogRecord(BaseModel):
     timestamp: datetime | None = Field(default=None, description="Timestamp of the log entry")
     raw: str = Field(..., description="Original unparsed log line")
     attrs: dict[str, Any] = Field(default_factory=dict, description="Additional structured attributes")
-
-    class Config:
-        json_encoders = {datetime: lambda v: v.isoformat() if v else None}
 
 
 class ClusterSummary(BaseModel):
@@ -62,7 +61,7 @@ class Explanation(BaseModel):
     confidence: ConfidenceLevel = Field(..., description="Confidence level")
     confidence_score: float = Field(..., ge=0.0, le=1.0, description="Numeric confidence (0.0-1.0)")
     confidence_reasoning: str | None = Field(default=None, description="Why this confidence was assigned")
-    generated_at: datetime = Field(default_factory=datetime.utcnow, description="When this explanation was created")
+    generated_at: datetime = Field(default_factory=lambda: datetime.now(tz=None), description="When this explanation was created")
     raw_response: str | None = Field(default=None, description="Raw LLM response for debugging")
 
 

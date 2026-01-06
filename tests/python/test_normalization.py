@@ -1,8 +1,10 @@
 """Tests for the normalization module."""
 
+import re
+
 import pytest
 
-from sentinel_ml.normalization import NormalizationPipeline, normalize
+from sentinel_ml.normalization import MaskingRule, NormalizationPipeline, normalize
 
 
 class TestNormalizationPipeline:
@@ -77,7 +79,12 @@ class TestNormalizationPipeline:
 
     def test_add_custom_rule(self, pipeline: NormalizationPipeline) -> None:
         """Test adding a custom masking rule."""
-        pipeline.add_rule("custom_id", r"ID-\d+", "<custom_id>")
+        # Insert at beginning to take priority over number masking
+        pipeline.rules.insert(0, MaskingRule(
+            name="custom_id",
+            pattern=re.compile(r"ID-\d+"),
+            replacement="<custom_id>",
+        ))
         msg = "Processing ID-12345"
         result = pipeline.normalize(msg)
         assert result == "Processing <custom_id>"
