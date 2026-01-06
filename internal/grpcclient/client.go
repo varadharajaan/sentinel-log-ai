@@ -31,6 +31,7 @@ import (
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/connectivity"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/keepalive"
 	"google.golang.org/grpc/status"
@@ -62,6 +63,9 @@ type Config struct {
 
 	// MaxMessageSize is the maximum message size in bytes
 	MaxMessageSize int
+
+	// BlockOnConnect blocks until connection is ready
+	BlockOnConnect bool
 
 	// Logger is the logger instance
 	Logger *zap.Logger
@@ -144,9 +148,8 @@ type Client struct {
 	conn   *grpc.ClientConn
 	logger *zap.Logger
 
-	mu       sync.RWMutex
-	closed   bool
-	lastPing time.Time
+	mu     sync.RWMutex
+	closed bool
 }
 
 // NewClient creates a new gRPC client with the given configuration.
@@ -211,14 +214,34 @@ func (c *Client) Connect(ctx context.Context) error {
 		opts = append(opts, grpc.WithDefaultCallOptions(grpc.UseCompressor("gzip")))
 	}
 
-	// Create connection with timeout
-	connectCtx, cancel := context.WithTimeout(ctx, c.config.ConnectTimeout)
-	defer cancel()
-
-	conn, err := grpc.DialContext(connectCtx, c.config.Address, opts...)
+	// Create connection using NewClient (non-blocking by default)
+	conn, err := grpc.NewClient(c.config.Address, opts...)
 	if err != nil {
 		c.logger.Error("connection_failed", zap.Error(err))
 		return sentinelerrors.NewCommConnectionError(c.config.Address, err.Error())
+	}
+
+	// Wait for connection to be ready with timeout
+	connectCtx, cancel := context.WithTimeout(ctx, c.config.ConnectTimeout)
+	defer cancel()
+
+	if !c.config.BlockOnConnect {
+		// Non-blocking: just store the connection
+		c.conn = conn
+		c.logger.Info("connected_to_ml_server")
+		return nil
+	}
+
+	// Blocking: wait for ready state
+	for {
+		state := conn.GetState()
+		if state == connectivity.Ready {
+			break
+		}
+		if !conn.WaitForStateChange(connectCtx, state) {
+			_ = conn.Close()
+			return sentinelerrors.NewCommConnectionError(c.config.Address, "connection timeout")
+		}
 	}
 
 	c.conn = conn
@@ -266,6 +289,7 @@ func (c *Client) GetConnection() *grpc.ClientConn {
 }
 
 // withRetry executes a function with retry logic.
+// nolint:unused // Will be used in M2 for embedding operations with retry
 func (c *Client) withRetry(ctx context.Context, operation string, fn func() error) error {
 	var lastErr error
 	backoff := c.config.RetryBackoff
