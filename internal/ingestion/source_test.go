@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"sentinel-log-ai/internal/models"
+
 	"go.uber.org/zap"
 )
 

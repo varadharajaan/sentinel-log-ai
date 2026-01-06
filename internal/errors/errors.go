@@ -41,18 +41,18 @@ const (
 
 // Processing error codes (3xxx)
 const (
-	ErrCodeProcessEmbeddingFailed  ErrorCode = "SENTINEL_3001"
-	ErrCodeProcessClusteringFailed ErrorCode = "SENTINEL_3002"
-	ErrCodeProcessNoveltyFailed    ErrorCode = "SENTINEL_3003"
-	ErrCodeProcessModelLoadFailed  ErrorCode = "SENTINEL_3004"
+	ErrCodeProcessEmbeddingFailed   ErrorCode = "SENTINEL_3001"
+	ErrCodeProcessClusteringFailed  ErrorCode = "SENTINEL_3002"
+	ErrCodeProcessNoveltyFailed     ErrorCode = "SENTINEL_3003"
+	ErrCodeProcessModelLoadFailed   ErrorCode = "SENTINEL_3004"
 	ErrCodeProcessResourceExhausted ErrorCode = "SENTINEL_3005"
 )
 
 // Storage error codes (4xxx)
 const (
-	ErrCodeStorageReadFailed      ErrorCode = "SENTINEL_4001"
-	ErrCodeStorageWriteFailed     ErrorCode = "SENTINEL_4002"
-	ErrCodeStorageIndexCorrupted  ErrorCode = "SENTINEL_4003"
+	ErrCodeStorageReadFailed       ErrorCode = "SENTINEL_4001"
+	ErrCodeStorageWriteFailed      ErrorCode = "SENTINEL_4002"
+	ErrCodeStorageIndexCorrupted   ErrorCode = "SENTINEL_4003"
 	ErrCodeStorageCapacityExceeded ErrorCode = "SENTINEL_4004"
 )
 
@@ -84,16 +84,16 @@ var (
 	ErrIngestTimeout          = errors.New("ingestion timeout")
 
 	// Processing errors
-	ErrProcessEmbeddingFailed  = errors.New("embedding generation failed")
-	ErrProcessClusteringFailed = errors.New("clustering failed")
-	ErrProcessNoveltyFailed    = errors.New("novelty detection failed")
-	ErrProcessModelLoadFailed  = errors.New("model loading failed")
+	ErrProcessEmbeddingFailed   = errors.New("embedding generation failed")
+	ErrProcessClusteringFailed  = errors.New("clustering failed")
+	ErrProcessNoveltyFailed     = errors.New("novelty detection failed")
+	ErrProcessModelLoadFailed   = errors.New("model loading failed")
 	ErrProcessResourceExhausted = errors.New("resource exhausted")
 
 	// Storage errors
-	ErrStorageReadFailed      = errors.New("storage read failed")
-	ErrStorageWriteFailed     = errors.New("storage write failed")
-	ErrStorageIndexCorrupted  = errors.New("index corrupted")
+	ErrStorageReadFailed       = errors.New("storage read failed")
+	ErrStorageWriteFailed      = errors.New("storage write failed")
+	ErrStorageIndexCorrupted   = errors.New("index corrupted")
 	ErrStorageCapacityExceeded = errors.New("storage capacity exceeded")
 
 	// Communication errors

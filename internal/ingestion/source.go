@@ -10,8 +10,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/nxadm/tail"
 	"sentinel-log-ai/internal/models"
+
+	"github.com/nxadm/tail"
 	"go.uber.org/zap"
 )
 
