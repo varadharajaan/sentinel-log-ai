@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/sentinel-log-ai/sentinel-log-ai/internal/models"
+	"sentinel-log-ai/internal/models"
 )
 
 // Parser defines the interface for log format parsers.

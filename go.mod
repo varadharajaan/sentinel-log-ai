@@ -1,4 +1,4 @@
-module github.com/sentinel-log-ai/sentinel-log-ai
+module sentinel-log-ai
 
 go 1.22
 
@@ -6,6 +6,7 @@ require (
 	github.com/nxadm/tail v1.4.11
 	github.com/spf13/cobra v1.8.0
 	go.uber.org/zap v1.26.0
+	gopkg.in/natefinch/lumberjack.v2 v2.2.1
 )
 
 require (

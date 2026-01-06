@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/nxadm/tail"
-	"github.com/sentinel-log-ai/sentinel-log-ai/internal/models"
+	"sentinel-log-ai/internal/models"
 	"go.uber.org/zap"
 )
 

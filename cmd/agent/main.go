@@ -6,7 +6,7 @@ package main
 import (
 	"os"
 
-	"github.com/sentinel-log-ai/sentinel-log-ai/cmd/agent/cmd"
+	"sentinel-log-ai/cmd/agent/cmd"
 )
 
 func main() {
