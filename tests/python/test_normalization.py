@@ -80,11 +80,14 @@ class TestNormalizationPipeline:
     def test_add_custom_rule(self, pipeline: NormalizationPipeline) -> None:
         """Test adding a custom masking rule."""
         # Insert at beginning to take priority over number masking
-        pipeline.rules.insert(0, MaskingRule(
-            name="custom_id",
-            pattern=re.compile(r"ID-\d+"),
-            replacement="<custom_id>",
-        ))
+        pipeline.rules.insert(
+            0,
+            MaskingRule(
+                name="custom_id",
+                pattern=re.compile(r"ID-\d+"),
+                replacement="<custom_id>",
+            ),
+        )
         msg = "Processing ID-12345"
         result = pipeline.normalize(msg)
         assert result == "Processing <custom_id>"

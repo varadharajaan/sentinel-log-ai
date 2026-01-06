@@ -1,6 +1,5 @@
 """Tests for Python log parser module."""
 
-
 import pytest
 
 from sentinel_ml.parser import (
@@ -75,9 +74,7 @@ class TestSyslogParser:
         assert parser.name == "syslog"
 
     def test_can_parse_syslog(self, parser):
-        assert parser.can_parse(
-            "Jan 15 10:30:00 myhost sshd[1234]: login attempt"
-        )
+        assert parser.can_parse("Jan 15 10:30:00 myhost sshd[1234]: login attempt")
         assert parser.can_parse("Jan 15 10:30:00 host kernel: message")
         assert parser.can_parse("Jan  5 10:30:00 host app: test")
 
@@ -127,7 +124,9 @@ class TestNginxParser:
         assert not parser.can_parse("regular log line")
 
     def test_parse_access_log(self, parser):
-        line = '127.0.0.1 - admin [15/Jan/2024:10:30:00 +0000] "GET /api HTTP/1.1" 200 512 "-" "curl"'
+        line = (
+            '127.0.0.1 - admin [15/Jan/2024:10:30:00 +0000] "GET /api HTTP/1.1" 200 512 "-" "curl"'
+        )
         record = parser.parse(line, "/var/log/nginx/access.log")
 
         assert record is not None
@@ -244,9 +243,7 @@ class TestParserRegistry:
 
     def test_parse_syslog(self):
         registry = ParserRegistry()
-        record = registry.parse(
-            "Jan 15 10:30:00 host app: message", "/var/log/syslog"
-        )
+        record = registry.parse("Jan 15 10:30:00 host app: message", "/var/log/syslog")
 
         assert record.message == "message"
         assert record.attrs["hostname"] == "host"
@@ -273,9 +270,7 @@ class TestParserRegistry:
             def parse(self, line, source):
                 from sentinel_ml.models import LogRecord
 
-                return LogRecord(
-                    message=line[7:], source=source, raw=line, level="CUSTOM"
-                )
+                return LogRecord(message=line[7:], source=source, raw=line, level="CUSTOM")
 
         registry.register(CustomParser(), priority=0)
 

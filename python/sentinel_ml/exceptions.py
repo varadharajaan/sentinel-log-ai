@@ -134,9 +134,7 @@ class ConfigurationError(SentinelError):
         )
 
     @classmethod
-    def validation_failed(
-        cls, field: str, value: Any, reason: str
-    ) -> ConfigurationError:
+    def validation_failed(cls, field: str, value: Any, reason: str) -> ConfigurationError:
         """Create error for validation failure."""
         return cls(
             message=f"Configuration validation failed for '{field}': {reason}",
@@ -173,9 +171,7 @@ class IngestionError(SentinelError):
         )
 
     @classmethod
-    def parse_failed(
-        cls, line: str, line_number: int, reason: str
-    ) -> IngestionError:
+    def parse_failed(cls, line: str, line_number: int, reason: str) -> IngestionError:
         """Create error for parse failure."""
         # Truncate long lines for context
         truncated = line[:200] + "..." if len(line) > 200 else line
@@ -330,9 +326,7 @@ class LLMError(SentinelError):
         )
 
     @classmethod
-    def rate_limited(
-        cls, provider: str, retry_after: float | None = None
-    ) -> LLMError:
+    def rate_limited(cls, provider: str, retry_after: float | None = None) -> LLMError:
         """Create error for rate limiting."""
         return cls(
             message=f"Rate limited by LLM provider '{provider}'",
@@ -342,9 +336,7 @@ class LLMError(SentinelError):
         )
 
     @classmethod
-    def context_too_long(
-        cls, tokens: int, max_tokens: int
-    ) -> LLMError:
+    def context_too_long(cls, tokens: int, max_tokens: int) -> LLMError:
         """Create error for context length exceeded."""
         return cls(
             message=f"Context length {tokens} exceeds maximum {max_tokens}",

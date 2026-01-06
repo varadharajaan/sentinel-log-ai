@@ -135,7 +135,9 @@ class NormalizationPipeline:
             # Hex tokens with 0x prefix (must contain letters to distinguish from pure numbers)
             MaskingRule(
                 name="hex_token",
-                pattern=re.compile(r"\b0x[0-9a-fA-F]{4,}\b|\b[0-9a-fA-F]*[a-fA-F][0-9a-fA-F]*\b(?=.*[0-9])"),
+                pattern=re.compile(
+                    r"\b0x[0-9a-fA-F]{4,}\b|\b[0-9a-fA-F]*[a-fA-F][0-9a-fA-F]*\b(?=.*[0-9])"
+                ),
                 replacement="<hex>",
             ),
             # Long numbers (5+ digits): 123456, 1234567890

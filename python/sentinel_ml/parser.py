@@ -185,12 +185,8 @@ class NginxParser(Parser):
 
         return None
 
-    def _parse_access_log(
-        self, match: re.Match, line: str, source: str
-    ) -> LogRecord:
-        client_ip, user, ts_str, request, status, size, referer, user_agent = (
-            match.groups()
-        )
+    def _parse_access_log(self, match: re.Match, line: str, source: str) -> LogRecord:
+        client_ip, user, ts_str, request, status, size, referer, user_agent = match.groups()
 
         try:
             ts = datetime.strptime(ts_str, "%d/%b/%Y:%H:%M:%S %z")
@@ -215,9 +211,7 @@ class NginxParser(Parser):
             },
         )
 
-    def _parse_error_log(
-        self, match: re.Match, line: str, source: str
-    ) -> LogRecord:
+    def _parse_error_log(self, match: re.Match, line: str, source: str) -> LogRecord:
         ts_str, level, pid, tid, message = match.groups()
 
         try:
