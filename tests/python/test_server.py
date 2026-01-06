@@ -317,10 +317,7 @@ class TestServerIntegration:
 
     def test_metrics_after_processing(self, server: GRPCServer) -> None:
         """Test that metrics are updated after processing."""
-        records = [
-            {"message": "test", "raw": "test", "source": "test"}
-            for _ in range(10)
-        ]
+        records = [{"message": "test", "raw": "test", "source": "test"} for _ in range(10)]
 
         server.servicer.preprocess_records(records)
 
@@ -330,9 +327,7 @@ class TestServerIntegration:
     def test_health_during_operation(self, server: GRPCServer) -> None:
         """Test health check during operation."""
         # Process some records
-        server.servicer.preprocess_records([
-            {"message": "test", "raw": "test", "source": "test"}
-        ])
+        server.servicer.preprocess_records([{"message": "test", "raw": "test", "source": "test"}])
 
         health = server.health_check(detailed=True)
 

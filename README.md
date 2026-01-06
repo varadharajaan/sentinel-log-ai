@@ -1,6 +1,6 @@
 ﻿# Sentinel Log AI
 
-[![CI](https://github.com/sentinel-log-ai/sentinel-log-ai/actions/workflows/ci.yml/badge.svg)](https://github.com/sentinel-log-ai/sentinel-log-ai/actions/workflows/ci.yml)
+[![CI](https://github.com/varadharajaan/sentinel-log-ai/actions/workflows/ci.yml/badge.svg)](https://github.com/varadharajaan/sentinel-log-ai/actions/workflows/ci.yml)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![Go 1.22+](https://img.shields.io/badge/go-1.22+-00ADD8.svg)](https://golang.org/dl/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)

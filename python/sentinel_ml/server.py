@@ -223,8 +223,7 @@ class MLServiceServicer:
 
         if detailed:
             result["components"] = [
-                {"name": c.name, "healthy": c.healthy, "message": c.message}
-                for c in components
+                {"name": c.name, "healthy": c.healthy, "message": c.message} for c in components
             ]
             result["metrics"] = self._metrics.to_dict()
 
