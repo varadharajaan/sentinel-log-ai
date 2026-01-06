@@ -376,7 +376,7 @@ func BenchmarkFileSource_ReadBatch(b *testing.B) {
 		records := make(chan *models.LogRecord, 1000)
 
 		go func() {
-			source.Read(ctx, records)
+			_ = source.Read(ctx, records)
 			close(records)
 		}()
 

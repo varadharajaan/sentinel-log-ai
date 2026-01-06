@@ -226,7 +226,7 @@ func Sync() error {
 // Call this in tests to avoid file locking issues on Windows.
 func Close() error {
 	if globalLogger != nil {
-		globalLogger.Sync()
+		_ = globalLogger.Sync() // ignore sync error on close
 		globalLogger = nil
 		globalSugar = nil
 	}

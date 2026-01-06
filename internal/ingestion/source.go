@@ -100,7 +100,7 @@ func (f *FileSource) readTail(ctx context.Context, records chan<- *models.LogRec
 	if err != nil {
 		return fmt.Errorf("failed to tail file: %w", err)
 	}
-	defer t.Stop()
+	defer func() { _ = t.Stop() }()
 
 	lineNum := 0
 	for {
