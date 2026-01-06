@@ -43,6 +43,8 @@ class ErrorCode(str, Enum):
     PROCESS_NOVELTY_FAILED = "SENTINEL_3003"
     PROCESS_MODEL_LOAD_FAILED = "SENTINEL_3004"
     PROCESS_RESOURCE_EXHAUSTED = "SENTINEL_3005"
+    PREPROCESSING_FAILED = "SENTINEL_3006"
+    PREPROCESSING_STAGE_FAILED = "SENTINEL_3007"
 
     # Storage errors (4xxx)
     STORAGE_READ_FAILED = "SENTINEL_4001"
@@ -234,6 +236,43 @@ class ProcessingError(SentinelError):
             error_code=ErrorCode.PROCESS_RESOURCE_EXHAUSTED,
             context={"resource": resource, "limit": limit},
             is_retryable=True,
+        )
+
+
+@dataclass
+class PreprocessingError(SentinelError):
+    """Raised when preprocessing operations fail."""
+
+    error_code: ErrorCode = ErrorCode.PREPROCESSING_FAILED
+
+    @classmethod
+    def stage_failed(cls, stage_name: str, reason: str) -> PreprocessingError:
+        """Create error for stage failure."""
+        return cls(
+            message=f"Preprocessing stage '{stage_name}' failed: {reason}",
+            error_code=ErrorCode.PREPROCESSING_STAGE_FAILED,
+            context={"stage_name": stage_name, "reason": reason},
+            is_retryable=True,
+        )
+
+    @classmethod
+    def pipeline_failed(cls, reason: str, records_processed: int = 0) -> PreprocessingError:
+        """Create error for pipeline failure."""
+        return cls(
+            message=f"Preprocessing pipeline failed: {reason}",
+            error_code=ErrorCode.PREPROCESSING_FAILED,
+            context={"reason": reason, "records_processed": records_processed},
+            is_retryable=True,
+        )
+
+    @classmethod
+    def invalid_record(cls, record_id: str, reason: str) -> PreprocessingError:
+        """Create error for invalid record."""
+        return cls(
+            message=f"Invalid record '{record_id}': {reason}",
+            error_code=ErrorCode.PREPROCESSING_FAILED,
+            context={"record_id": record_id, "reason": reason},
+            is_retryable=False,
         )
 
 

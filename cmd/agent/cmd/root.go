@@ -37,32 +37,11 @@ func init() {
 	rootCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "enable verbose output")
 
 	// Add subcommands
-	rootCmd.AddCommand(ingestCmd)
+	rootCmd.AddCommand(setupIngestCmd())
 	rootCmd.AddCommand(analyzeCmd)
 	rootCmd.AddCommand(novelCmd)
 	rootCmd.AddCommand(explainCmd)
 	rootCmd.AddCommand(serveCmd)
-}
-
-// ingestCmd represents the ingest command
-var ingestCmd = &cobra.Command{
-	Use:   "ingest [path]",
-	Short: "Ingest logs from a file or directory",
-	Long: `Ingest logs from the specified file or directory.
-Supports batch mode (read entire file) and tail mode (follow new lines).
-
-Examples:
-  sentinel-log-ai ingest /var/log/syslog
-  sentinel-log-ai ingest /var/log/nginx/ --pattern "*.log"
-  sentinel-log-ai ingest /var/log/app.log --tail`,
-	Args: cobra.ExactArgs(1),
-	RunE: func(cmd *cobra.Command, args []string) error {
-		path := args[0]
-		tail, _ := cmd.Flags().GetBool("tail")
-		fmt.Printf("Ingesting logs from: %s (tail=%v)\n", path, tail)
-		// TODO: Implement ingestion logic
-		return nil
-	},
 }
 
 // analyzeCmd represents the analyze command
@@ -125,9 +104,6 @@ var serveCmd = &cobra.Command{
 }
 
 func init() {
-	ingestCmd.Flags().Bool("tail", false, "follow file for new lines (like tail -f)")
-	ingestCmd.Flags().String("pattern", "*", "glob pattern for files in directory mode")
-
 	analyzeCmd.Flags().String("last", "1h", "analyze logs from last duration (e.g., 1h, 30m, 24h)")
 
 	novelCmd.Flags().Bool("follow", false, "continuously monitor for novel patterns")

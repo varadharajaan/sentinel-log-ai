@@ -1,6 +1,6 @@
 ﻿# Sentinel Log AI
 
-[![CI](https://github.com/sentinel-log-ai/sentinel-log-ai/actions/workflows/ci.yml/badge.svg)](https://github.com/sentinel-log-ai/sentinel-log-ai/actions/workflows/ci.yml)
+[![CI](https://github.com/varadharajaan/sentinel-log-ai/actions/workflows/ci.yml/badge.svg)](https://github.com/varadharajaan/sentinel-log-ai/actions/workflows/ci.yml)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![Go 1.22+](https://img.shields.io/badge/go-1.22+-00ADD8.svg)](https://golang.org/dl/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -55,6 +55,29 @@ Sentinel Log AI automatically groups similar log patterns, detects novel/unseen 
 | **ML Engine** | Python | Rich ML ecosystem (sentence-transformers, FAISS, HDBSCAN) |
 
 Communication via **gRPC** provides strongly-typed, efficient, streaming-capable IPC.
+
+### Ingestion Pipeline (M1)
+
+The ingestion pipeline provides high-performance log processing:
+
+```
+┌─────────────┐     ┌──────────────┐     ┌───────────────┐     ┌────────────┐
+│ Log Sources │────►│ Batch        │────►│ Preprocessing │────►│ ML Engine  │
+│ File/Stdin/ │     │ Processor    │     │ Pipeline      │     │ (gRPC)     │
+│ Directory   │     │ (Go)         │     │ (Python)      │     │            │
+└─────────────┘     └──────────────┘     └───────────────┘     └────────────┘
+                           │                     │
+                    • Size-based flush    • ID Assignment
+                    • Time-based flush    • Timestamp parsing
+                    • Back-pressure       • Format detection
+                    • Metrics tracking    • Normalization
+```
+
+**Key Components:**
+- **Batch Processor**: Aggregates log records to reduce gRPC overhead (configurable size/time triggers)
+- **gRPC Client**: Retry logic with exponential backoff, connection pooling, health checks
+- **Preprocessing Pipeline**: Modular stages (parsing → normalization → filtering)
+- **Multi-format Parsers**: JSON, Syslog, Nginx, Python traceback auto-detection
 
 ## 📦 Installation
 
@@ -115,6 +138,18 @@ sentinel-log-ai ingest /var/log/app.log --tail
 
 # From stdin
 cat /var/log/nginx/error.log | sentinel-log-ai ingest -
+
+# Ingest entire directory (recursive)
+sentinel-log-ai ingest /var/log/ --pattern "*.log"
+
+# With custom batch settings
+sentinel-log-ai ingest /var/log/app.log --batch-size 50 --flush-timeout 2s
+
+# Dry run (no ML processing, just parse and display)
+sentinel-log-ai ingest /var/log/syslog --dry-run
+
+# Connect to specific ML server
+sentinel-log-ai ingest /var/log/syslog --ml-server localhost:50051
 ```
 
 ### Analyze Patterns
@@ -222,6 +257,32 @@ Logs are normalized before embedding to improve clustering:
 | `1234567890` | `<num>` |
 | `0x1a2b3c4d5e6f` | `<hex>` |
 
+## 🎨 Design Patterns & SOLID Principles
+
+The codebase follows enterprise-grade patterns for maintainability and extensibility:
+
+### Go Agent
+| Pattern | Usage |
+|---------|-------|
+| **Strategy** | Configurable flush strategies (size-based, time-based) in batch processor |
+| **Observer** | Batch lifecycle hooks for monitoring and metrics |
+| **Builder** | Fluent configuration for batch processor and gRPC client |
+| **Factory** | Parser creation based on log format auto-detection |
+
+### Python ML Engine
+| Pattern | Usage |
+|---------|-------|
+| **Pipeline** | Sequential preprocessing stages (parse → normalize → filter) |
+| **Strategy** | Pluggable normalization strategies |
+| **Factory** | Parser and normalizer creation |
+| **Facade** | Simple gRPC interface to complex ML subsystems |
+
+### SOLID Principles
+- **Single Responsibility**: Each component handles one concern (e.g., batch processor only handles batching)
+- **Open/Closed**: Extensible via interfaces (`BatchHandler`, `ProcessingStage`) without modifying core code
+- **Interface Segregation**: Minimal interfaces focused on specific capabilities
+- **Dependency Inversion**: Components depend on abstractions, not concrete implementations
+
 ## 🧪 Testing
 
 ```bash
@@ -247,22 +308,29 @@ sentinel-log-ai/
 │       ├── main.go
 │       └── cmd/            # Cobra commands
 ├── internal/               # Go internal packages
+│   ├── batch/              # High-performance batch processor
+│   ├── errors/             # Structured error handling
+│   ├── grpcclient/         # gRPC client with retry logic
 │   ├── ingestion/          # Log source adapters
+│   ├── logging/            # Structured JSONL logging
 │   ├── models/             # Go data models
-│   └── grpc/               # gRPC client
+│   └── parser/             # Multi-format log parsers
 ├── pkg/
 │   └── mlpb/               # Generated Go protobuf
 ├── python/
 │   └── sentinel_ml/        # Python ML engine
+│       ├── config.py       # Pydantic configuration
+│       ├── exceptions.py   # Structured error hierarchy
+│       ├── logging.py      # Structured logging (structlog)
 │       ├── models.py       # Pydantic models
-│       ├── config.py       # Configuration
-│       ├── logging.py      # Structured logging
-│       ├── normalization.py # Log normalization
-│       ├── embeddings.py   # Sentence transformers
-│       ├── clustering.py   # HDBSCAN clustering
-│       ├── novelty.py      # Novelty detection
-│       ├── llm.py          # Ollama integration
-│       └── server.py       # gRPC server
+│       ├── normalization.py # Log normalization & masking
+│       ├── parser.py       # Python log parsers
+│       ├── preprocessing.py # Preprocessing pipeline
+│       ├── server.py       # gRPC server
+│       ├── embeddings.py   # Sentence transformers (M2)
+│       ├── clustering.py   # HDBSCAN clustering (M3)
+│       ├── novelty.py      # Novelty detection (M4)
+│       └── llm.py          # Ollama integration (M5)
 ├── proto/
 │   └── ml/v1/              # Protobuf definitions
 ├── tests/
@@ -279,7 +347,7 @@ sentinel-log-ai/
 ## 🗺️ Roadmap
 
 - [x] **M0**: Project scaffolding, dev tooling
-- [ ] **M1**: Ingestion & preprocessing pipeline
+- [x] **M1**: Ingestion & preprocessing pipeline
 - [ ] **M2**: Embeddings & FAISS vector store
 - [ ] **M3**: HDBSCAN clustering & pattern summaries
 - [ ] **M4**: Novelty detection
