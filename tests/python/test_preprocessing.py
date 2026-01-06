@@ -3,6 +3,7 @@
 from datetime import datetime, timezone
 
 import pytest
+from pydantic import ValidationError
 
 from sentinel_ml.models import ClusterSummary, Explanation, LogRecord, NoveltyResult
 
@@ -344,7 +345,7 @@ class TestModelValidation:
 
     def test_log_record_required_fields(self):
         """Test that required fields are enforced."""
-        with pytest.raises(TypeError):  # Missing required positional arguments
+        with pytest.raises(ValidationError):  # Pydantic validation error
             LogRecord()  # Missing required fields
 
     def test_log_record_type_coercion(self):
@@ -360,12 +361,12 @@ class TestModelValidation:
 
     def test_cluster_summary_required_fields(self):
         """Test that required fields are enforced."""
-        with pytest.raises(TypeError):
+        with pytest.raises(ValidationError):
             ClusterSummary()  # Missing required fields
 
     def test_explanation_required_fields(self):
         """Test that required fields are enforced."""
-        with pytest.raises(TypeError):
+        with pytest.raises(ValidationError):
             Explanation()  # Missing required fields
 
 
