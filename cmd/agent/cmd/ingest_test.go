@@ -111,11 +111,11 @@ func TestIngestRunnerFileNotFound(t *testing.T) {
 	t.Cleanup(func() { _ = logging.Close() })
 
 	opts := &IngestOptions{
-		Path:     "/nonexistent/path/to/file.log",
-		DryRun:   true,
-		BatchSize: 100,
+		Path:         "/nonexistent/path/to/file.log",
+		DryRun:       true,
+		BatchSize:    100,
 		BatchTimeout: 1 * time.Second,
-		BufferSize: 1000,
+		BufferSize:   1000,
 	}
 
 	runner, err := NewIngestRunner(opts)
