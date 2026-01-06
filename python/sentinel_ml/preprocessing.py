@@ -30,7 +30,7 @@ from typing import Any
 from sentinel_ml.exceptions import PreprocessingError
 from sentinel_ml.logging import get_logger
 from sentinel_ml.models import LogRecord
-from sentinel_ml.normalization import normalize_log_message
+from sentinel_ml.normalization import normalize
 from sentinel_ml.parser import ParserRegistry
 
 logger = get_logger(__name__)
@@ -150,7 +150,7 @@ class NormalizationStage(ProcessingStage):
             return record
 
         try:
-            record.normalized = normalize_log_message(record.message)
+            record.normalized = normalize(record.message)
             return record
         except Exception as e:
             logger.warning(
