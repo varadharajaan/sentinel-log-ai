@@ -1,0 +1,241 @@
+// Sentinel Log AI - gRPC Protocol Definition
+// Defines the communication interface between the Go agent and Python ML engine.
+
+syntax = "proto3";
+
+package sentinel.ml.v1;
+
+option go_package = "github.com/sentinel-log-ai/sentinel-log-ai/pkg/mlpb";
+
+import "google/protobuf/timestamp.proto";
+
+// MLService provides AI/ML capabilities for log analysis.
+// The Go agent calls this service to embed, cluster, and explain logs.
+service MLService {
+  // Embed converts log messages into vector embeddings.
+  rpc Embed(EmbedRequest) returns (EmbedResponse);
+
+  // EmbedStream provides streaming embedding for high-throughput ingestion.
+  rpc EmbedStream(stream EmbedRequest) returns (stream EmbedResponse);
+
+  // Search finds similar logs using vector similarity.
+  rpc Search(SearchRequest) returns (SearchResponse);
+
+  // Cluster groups similar logs and returns cluster summaries.
+  rpc Cluster(ClusterRequest) returns (ClusterResponse);
+
+  // DetectNovelty checks if a log pattern is novel/unseen.
+  rpc DetectNovelty(NoveltyRequest) returns (NoveltyResponse);
+
+  // Explain generates LLM explanation for a cluster.
+  rpc Explain(ExplainRequest) returns (ExplainResponse);
+
+  // Health check for the ML service.
+  rpc Health(HealthRequest) returns (HealthResponse);
+}
+
+// LogRecord represents a single log entry.
+message LogRecord {
+  // Unique ID for this record (optional, agent-assigned)
+  string id = 1;
+
+  // Original log message
+  string message = 2;
+
+  // Normalized/masked message (for embedding)
+  string normalized = 3;
+
+  // Log level (INFO, WARN, ERROR, etc.)
+  string level = 4;
+
+  // Source of the log (file path, journald unit, etc.)
+  string source = 5;
+
+  // Timestamp of the log entry
+  google.protobuf.Timestamp timestamp = 6;
+
+  // Additional attributes as JSON string
+  string attrs_json = 7;
+}
+
+// EmbedRequest contains logs to embed.
+message EmbedRequest {
+  repeated LogRecord records = 1;
+  
+  // Whether to use the cache
+  bool use_cache = 2;
+}
+
+// EmbedResponse contains the embeddings.
+message EmbedResponse {
+  // Embeddings as flattened float array (reshape to [n_records, embedding_dim])
+  repeated float embeddings = 1 [packed = true];
+  
+  // Dimension of each embedding
+  int32 embedding_dim = 2;
+  
+  // Number of cache hits
+  int32 cache_hits = 3;
+}
+
+// SearchRequest for finding similar logs.
+message SearchRequest {
+  // The log to find similar matches for
+  LogRecord query = 1;
+  
+  // Number of similar logs to return
+  int32 top_k = 2;
+  
+  // Minimum similarity threshold (0.0 - 1.0)
+  float min_similarity = 3;
+}
+
+// SearchResult is a single similar log.
+message SearchResult {
+  // The matching log record
+  LogRecord record = 1;
+  
+  // Similarity score (0.0 - 1.0, higher is more similar)
+  float similarity = 2;
+  
+  // Distance in embedding space
+  float distance = 3;
+  
+  // Cluster ID this log belongs to (if clustered)
+  string cluster_id = 4;
+}
+
+// SearchResponse contains similar log matches.
+message SearchResponse {
+  repeated SearchResult results = 1;
+}
+
+// ClusterRequest for clustering logs.
+message ClusterRequest {
+  // Logs to cluster (if empty, clusters all stored logs)
+  repeated LogRecord records = 1;
+  
+  // Minimum cluster size
+  int32 min_cluster_size = 2;
+  
+  // Whether to persist cluster assignments
+  bool persist = 3;
+}
+
+// ClusterSummary describes a log cluster.
+message ClusterSummary {
+  // Stable cluster identifier
+  string cluster_id = 1;
+  
+  // Number of logs in this cluster
+  int32 size = 2;
+  
+  // Representative log message
+  string representative = 3;
+  
+  // Top keywords/tokens in this cluster
+  repeated string keywords = 4;
+  
+  // Cohesion score (how tight the cluster is, 0.0 - 1.0)
+  float cohesion = 5;
+  
+  // Whether this is a new cluster (first seen this run)
+  bool is_new = 6;
+}
+
+// ClusterResponse contains clustering results.
+message ClusterResponse {
+  repeated ClusterSummary clusters = 1;
+  
+  // Number of noise points (logs that didn't cluster)
+  int32 noise_count = 2;
+  
+  // Total logs processed
+  int32 total_processed = 3;
+}
+
+// NoveltyRequest for detecting novel patterns.
+message NoveltyRequest {
+  // The log to check for novelty
+  LogRecord record = 1;
+  
+  // Novelty threshold (above this = novel)
+  float threshold = 2;
+}
+
+// NoveltyResponse indicates if a log is novel.
+message NoveltyResponse {
+  // Whether this log pattern is novel
+  bool is_novel = 1;
+  
+  // Novelty score (0.0 = seen before, 1.0 = completely new)
+  float novelty_score = 2;
+  
+  // Closest cluster (if any)
+  string closest_cluster_id = 3;
+  
+  // Distance to closest cluster
+  float distance_to_cluster = 4;
+  
+  // Explanation of novelty assessment
+  string reason = 5;
+}
+
+// ExplainRequest for generating LLM explanations.
+message ExplainRequest {
+  // Cluster ID to explain
+  string cluster_id = 1;
+  
+  // OR provide logs directly
+  repeated LogRecord sample_logs = 2;
+  
+  // Context from previous explanations (for consistency)
+  string context = 3;
+  
+  // Model to use (e.g., "llama3.2", "mistral")
+  string model = 4;
+}
+
+// ExplainResponse contains the LLM explanation.
+message ExplainResponse {
+  // Probable root cause
+  string root_cause = 1;
+  
+  // Suggested next steps
+  repeated string next_steps = 2;
+  
+  // Suggested remediation
+  string remediation = 3;
+  
+  // Confidence level (LOW, MEDIUM, HIGH)
+  string confidence = 4;
+  
+  // Numeric confidence score (0.0 - 1.0)
+  float confidence_score = 5;
+  
+  // Why this confidence was assigned
+  string confidence_reasoning = 6;
+  
+  // Raw LLM response (for debugging)
+  string raw_response = 7;
+}
+
+// HealthRequest for health checks.
+message HealthRequest {
+  // Include detailed component status
+  bool detailed = 1;
+}
+
+// ComponentHealth describes a component's health.
+message ComponentHealth {
+  string name = 1;
+  bool healthy = 2;
+  string message = 3;
+}
+
+// HealthResponse indicates service health.
+message HealthResponse {
+  bool healthy = 1;
+  string version = 2;
+  repeated ComponentHealth components = 3;
+}
