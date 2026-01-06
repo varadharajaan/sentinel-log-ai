@@ -26,17 +26,17 @@ Sentinel Log AI automatically groups similar log patterns, detects novel/unseen 
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                 │
 │   ┌─────────────────┐         gRPC          ┌────────────────┐  │
-│   │   Go Agent      │◄──────────────────────►│  Python ML     │  │
-│   │                 │                        │  Engine        │  │
-│   │  • Log Ingestion│                        │                │  │
-│   │  • File Tailing │                        │  • Embeddings  │  │
-│   │  • Journald     │                        │  • FAISS Store │  │
-│   │  • Streaming    │                        │  • Clustering  │  │
-│   │  • CLI          │                        │  • Novelty     │  │
-│   │                 │                        │  • LLM/Ollama  │  │
-│   └────────┬────────┘                        └───────┬────────┘  │
-│            │                                         │           │
-│            ▼                                         ▼           │
+│   │   Go Agent      │◄─────────────────────►│  Python ML     │  │
+│   │                 │                       │  Engine        │  │
+│   │  • Log Ingestion│                       │                │  │
+│   │  • File Tailing │                       │  • Embeddings  │  │
+│   │  • Journald     │                       │  • FAISS Store │  │
+│   │  • Streaming    │                       │  • Clustering  │  │
+│   │  • CLI          │                       │  • Novelty     │  │
+│   │                 │                       │  • LLM/Ollama  │  │
+│   └────────┬────────┘                       └───────┬────────┘  │
+│            │                                        │           │
+│            ▼                                        ▼           │
 │   ┌─────────────────┐                      ┌────────────────┐   │
 │   │  Log Sources    │                      │  Vector Store  │   │
 │   │  • Files        │                      │  (FAISS)       │   │
