@@ -279,6 +279,9 @@ func TestProcessorClose(t *testing.T) {
 		require.NoError(t, err)
 	}
 
+	// Give processLoop time to move records from channel to batch
+	time.Sleep(50 * time.Millisecond)
+
 	// Close should flush remaining records
 	err = proc.Close()
 	require.NoError(t, err)
@@ -411,6 +414,9 @@ func TestProcessorManualFlush(t *testing.T) {
 		require.NoError(t, err)
 	}
 
+	// Give processLoop time to move records from channel to batch
+	time.Sleep(50 * time.Millisecond)
+
 	// Manually flush
 	err = proc.Flush(context.Background())
 	require.NoError(t, err)
@@ -497,6 +503,10 @@ func TestProcessorConcurrency(t *testing.T) {
 	}
 
 	wg.Wait()
+
+	// Give processLoop time to process pending records before closing
+	time.Sleep(100 * time.Millisecond)
+
 	err = proc.Close()
 	require.NoError(t, err)
 

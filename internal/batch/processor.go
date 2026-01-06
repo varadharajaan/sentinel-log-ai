@@ -278,13 +278,17 @@ func (p *Processor) Close() error {
 	var closeErr error
 	p.closeOnce.Do(func() {
 		p.closed.Store(true)
-		close(p.recordCh)
-		p.cancel()
 
-		// Wait for processing to complete
+		// Close the channel to signal processLoop to drain and exit
+		close(p.recordCh)
+
+		// Wait for processing loop to complete (it will drain the channel)
 		p.wg.Wait()
 
-		// Flush any remaining records
+		// Cancel context after processLoop has finished
+		p.cancel()
+
+		// Flush any remaining records in the batch
 		p.batchMu.Lock()
 		remaining := p.batch
 		p.batch = nil
@@ -334,11 +338,10 @@ func (p *Processor) processLoop() {
 
 	for {
 		select {
-		case <-p.ctx.Done():
-			return
-
 		case record, ok := <-p.recordCh:
 			if !ok {
+				// Channel closed, drain any remaining records and exit
+				p.drainRemaining()
 				return
 			}
 
@@ -353,7 +356,7 @@ func (p *Processor) processLoop() {
 			p.batchMu.Unlock()
 
 			if shouldFlush {
-				ctx, cancel := context.WithTimeout(p.ctx, p.config.FlushTimeout)
+				ctx, cancel := context.WithTimeout(context.Background(), p.config.FlushTimeout)
 				if err := p.flushBatch(ctx, batch); err != nil {
 					p.logger.Error("batch_flush_failed", zap.Error(err))
 				}
@@ -367,12 +370,24 @@ func (p *Processor) processLoop() {
 			p.batchMu.Unlock()
 
 			if len(batch) > 0 {
-				ctx, cancel := context.WithTimeout(p.ctx, p.config.FlushTimeout)
+				ctx, cancel := context.WithTimeout(context.Background(), p.config.FlushTimeout)
 				if err := p.flushBatch(ctx, batch); err != nil {
 					p.logger.Error("periodic_flush_failed", zap.Error(err))
 				}
 				cancel()
 			}
+		}
+	}
+}
+
+// drainRemaining drains any remaining records from the channel when closing.
+func (p *Processor) drainRemaining() {
+	// Drain remaining records from channel
+	for record := range p.recordCh {
+		if record != nil {
+			p.batchMu.Lock()
+			p.batch = append(p.batch, record)
+			p.batchMu.Unlock()
 		}
 	}
 }
