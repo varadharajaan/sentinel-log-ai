@@ -41,7 +41,7 @@ class TestLogRecordPreprocessing:
         assert record.source == "stdin"
         assert record.timestamp is None
         assert record.level is None
-        assert record.attrs is None
+        assert record.attrs == {}  # default_factory=dict
 
     def test_log_record_json_serialization(self):
         """Test JSON serialization round-trip."""
@@ -181,7 +181,7 @@ class TestExplanationModel:
         )
 
         assert explanation.remediation is None
-        assert explanation.reasoning is None
+        assert explanation.confidence_reasoning is None  # correct field name
 
     def test_explanation_json_round_trip(self):
         """Test JSON serialization."""
@@ -213,33 +213,33 @@ class TestNoveltyResult:
         result = NoveltyResult(
             is_novel=True,
             novelty_score=0.87,
-            nearest_cluster="cluster-005",
-            explanation="Pattern not seen in last 24 hours",
+            closest_cluster_id="cluster-005",
+            reason="Pattern not seen in last 24 hours",
         )
 
         assert result.is_novel is True
         assert result.novelty_score == 0.87
-        assert result.nearest_cluster == "cluster-005"
+        assert result.closest_cluster_id == "cluster-005"
 
     def test_novelty_result_not_novel(self):
         """Test novelty result for known pattern."""
         result = NoveltyResult(
             is_novel=False,
             novelty_score=0.12,
-            nearest_cluster="cluster-001",
+            closest_cluster_id="cluster-001",
         )
 
         assert result.is_novel is False
         assert result.novelty_score < 0.5
-        assert result.explanation is None
+        assert result.reason is None
 
     def test_novelty_result_json_round_trip(self):
         """Test JSON serialization."""
         result = NoveltyResult(
             is_novel=True,
             novelty_score=0.95,
-            nearest_cluster="cluster-010",
-            explanation="Completely new error pattern",
+            closest_cluster_id="cluster-010",
+            reason="Completely new error pattern",
         )
 
         json_str = result.model_dump_json()

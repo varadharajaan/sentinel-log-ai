@@ -38,7 +38,7 @@ class TestSetupLogging:
 
     def test_setup_logging_json_format(self, capsys):
         """Test JSON format logging."""
-        setup_logging(level="INFO", json_format=True)
+        setup_logging(level="INFO", format="json")
         logger = get_logger("test_json")
         
         # Log a message
@@ -51,7 +51,7 @@ class TestSetupLogging:
 
     def test_setup_logging_console_format(self, capsys):
         """Test console format logging."""
-        setup_logging(level="INFO", json_format=False)
+        setup_logging(level="INFO", format="plain")
         logger = get_logger("test_console")
         
         logger.info("console test message")
@@ -91,8 +91,9 @@ class TestGetLogger:
         bound_logger.info("with context")
         
         captured = capsys.readouterr()
+        output = captured.err + captured.out
         # Context should be in output
-        assert "12345" in captured.err or "context" in captured.err
+        assert "12345" in output or "context" in output
 
     def test_multiple_loggers(self):
         """Test getting multiple loggers."""
@@ -249,7 +250,7 @@ class TestLoggerConfiguration:
 
     def test_json_format_structure(self, capsys):
         """Test JSON format produces valid JSON."""
-        setup_logging(level="INFO", json_format=True)
+        setup_logging(level="INFO", format="json")
         logger = get_logger("json_struct_test")
         
         logger.info("json test", key="value")

@@ -233,23 +233,18 @@ server:
 novelty:
   threshold: 0.9
 """
-        with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".yaml", delete=False
-        ) as f:
-            f.write(yaml_content)
-            f.flush()
+        with tempfile.TemporaryDirectory() as tmpdir:
+            yaml_path = Path(tmpdir) / "config.yaml"
+            yaml_path.write_text(yaml_content)
 
-            try:
-                config = Config.from_yaml(f.name)
+            config = Config.from_yaml(yaml_path)
 
-                assert config.embedding.model_name == "yaml-model"
-                assert config.embedding.batch_size == 64
-                assert config.server.port == 55555
-                assert config.novelty.threshold == 0.9
-                # Defaults for unspecified
-                assert config.llm.provider == "ollama"
-            finally:
-                os.unlink(f.name)
+            assert config.embedding.model_name == "yaml-model"
+            assert config.embedding.batch_size == 64
+            assert config.server.port == 55555
+            assert config.novelty.threshold == 0.9
+            # Defaults for unspecified
+            assert config.llm.provider == "ollama"
 
     def test_config_from_yaml_missing_file(self):
         """Test handling missing config file."""
@@ -308,17 +303,12 @@ class TestConfigLoad:
 server:
   port: 33333
 """
-        with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".yaml", delete=False
-        ) as f:
-            f.write(yaml_content)
-            f.flush()
+        with tempfile.TemporaryDirectory() as tmpdir:
+            yaml_path = Path(tmpdir) / "config.yaml"
+            yaml_path.write_text(yaml_content)
 
-            try:
-                config = Config.load(f.name)
-                assert config.server.port == 33333
-            finally:
-                os.unlink(f.name)
+            config = Config.load(str(yaml_path))
+            assert config.server.port == 33333
 
     def test_load_from_env_var(self, monkeypatch):
         """Test loading config path from env var."""
@@ -326,18 +316,13 @@ server:
 server:
   port: 22222
 """
-        with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".yaml", delete=False
-        ) as f:
-            f.write(yaml_content)
-            f.flush()
+        with tempfile.TemporaryDirectory() as tmpdir:
+            yaml_path = Path(tmpdir) / "config.yaml"
+            yaml_path.write_text(yaml_content)
 
-            try:
-                monkeypatch.setenv("SENTINEL_ML_CONFIG", f.name)
-                config = Config.load()
-                assert config.server.port == 22222
-            finally:
-                os.unlink(f.name)
+            monkeypatch.setenv("SENTINEL_ML_CONFIG", str(yaml_path))
+            config = Config.load()
+            assert config.server.port == 22222
 
 
 class TestGlobalConfig:
@@ -372,39 +357,29 @@ class TestConfigValidation:
 this is not: valid: yaml:
   - [broken
 """
-        with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".yaml", delete=False
-        ) as f:
-            f.write(yaml_content)
-            f.flush()
+        with tempfile.TemporaryDirectory() as tmpdir:
+            yaml_path = Path(tmpdir) / "config.yaml"
+            yaml_path.write_text(yaml_content)
 
+            # Should handle gracefully - either raise or return defaults
             try:
-                # Should handle gracefully - either raise or return defaults
-                try:
-                    config = Config.from_yaml(f.name)
-                    # If it doesn't raise, should have defaults
-                    assert isinstance(config, Config)
-                except Exception:
-                    # It's acceptable to raise on invalid YAML
-                    pass
-            finally:
-                os.unlink(f.name)
+                config = Config.from_yaml(yaml_path)
+                # If it doesn't raise, should have defaults
+                assert isinstance(config, Config)
+            except Exception:
+                # It's acceptable to raise on invalid YAML
+                pass
 
     def test_empty_yaml_handling(self):
         """Test handling empty YAML file."""
-        with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".yaml", delete=False
-        ) as f:
-            f.write("")
-            f.flush()
+        with tempfile.TemporaryDirectory() as tmpdir:
+            yaml_path = Path(tmpdir) / "config.yaml"
+            yaml_path.write_text("")
 
-            try:
-                config = Config.from_yaml(f.name)
-                assert isinstance(config, Config)
-                # Should have defaults
-                assert config.embedding.model_name == "all-MiniLM-L6-v2"
-            finally:
-                os.unlink(f.name)
+            config = Config.from_yaml(yaml_path)
+            assert isinstance(config, Config)
+            # Should have defaults
+            assert config.embedding.model_name == "all-MiniLM-L6-v2"
 
     def test_partial_yaml_handling(self):
         """Test handling partial YAML config."""
@@ -412,18 +387,13 @@ this is not: valid: yaml:
 embedding:
   model_name: "partial-model"
 """
-        with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".yaml", delete=False
-        ) as f:
-            f.write(yaml_content)
-            f.flush()
+        with tempfile.TemporaryDirectory() as tmpdir:
+            yaml_path = Path(tmpdir) / "config.yaml"
+            yaml_path.write_text(yaml_content)
 
-            try:
-                config = Config.from_yaml(f.name)
+            config = Config.from_yaml(yaml_path)
 
-                # Specified value
-                assert config.embedding.model_name == "partial-model"
-                # Defaults for unspecified
-                assert config.server.port == 50051
-            finally:
-                os.unlink(f.name)
+            # Specified value
+            assert config.embedding.model_name == "partial-model"
+            # Defaults for unspecified
+            assert config.server.port == 50051
