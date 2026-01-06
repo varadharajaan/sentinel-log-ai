@@ -185,7 +185,7 @@ class NginxParser(Parser):
 
         return None
 
-    def _parse_access_log(self, match: re.Match, line: str, source: str) -> LogRecord:
+    def _parse_access_log(self, match: re.Match[str], line: str, source: str) -> LogRecord:
         client_ip, user, ts_str, request, status, size, referer, user_agent = match.groups()
 
         try:
@@ -211,7 +211,7 @@ class NginxParser(Parser):
             },
         )
 
-    def _parse_error_log(self, match: re.Match, line: str, source: str) -> LogRecord:
+    def _parse_error_log(self, match: re.Match[str], line: str, source: str) -> LogRecord:
         ts_str, level, pid, tid, message = match.groups()
 
         try:

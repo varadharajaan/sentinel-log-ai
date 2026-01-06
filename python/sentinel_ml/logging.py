@@ -14,6 +14,8 @@ from __future__ import annotations
 import logging
 import os
 import sys
+from collections.abc import Iterator, MutableMapping
+from contextlib import contextmanager
 from datetime import datetime, timezone
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
@@ -70,8 +72,8 @@ class JSONLRotatingHandler(RotatingFileHandler):
 
 
 def _add_service_info(
-    _logger: logging.Logger, _method_name: str, event_dict: dict[str, Any]
-) -> dict[str, Any]:
+    _logger: logging.Logger, _method_name: str, event_dict: MutableMapping[str, Any]
+) -> MutableMapping[str, Any]:
     """Add service metadata to each log entry for Athena analysis."""
     event_dict["service"] = "sentinel-ml"
     event_dict["hostname"] = os.environ.get("HOSTNAME", "unknown")
@@ -80,16 +82,16 @@ def _add_service_info(
 
 
 def _add_timestamp_utc(
-    _logger: logging.Logger, _method_name: str, event_dict: dict[str, Any]
-) -> dict[str, Any]:
+    _logger: logging.Logger, _method_name: str, event_dict: MutableMapping[str, Any]
+) -> MutableMapping[str, Any]:
     """Add ISO8601 UTC timestamp for consistent time-based queries."""
     event_dict["timestamp"] = datetime.now(timezone.utc).isoformat()
     return event_dict
 
 
 def _format_exception(
-    _logger: logging.Logger, _method_name: str, event_dict: dict[str, Any]
-) -> dict[str, Any]:
+    _logger: logging.Logger, _method_name: str, event_dict: MutableMapping[str, Any]
+) -> MutableMapping[str, Any]:
     """Format exceptions as structured data instead of multiline strings."""
     if "exception" in event_dict:
         exc_info = event_dict.pop("exception")
@@ -226,7 +228,7 @@ def setup_logging(
         logging.getLogger(lib).setLevel(logging.WARNING)
 
 
-def get_logger(name: str | None = None) -> structlog.stdlib.BoundLogger:
+def get_logger(name: str | None = None) -> Any:
     """
     Get a structured logger instance.
 
@@ -263,7 +265,8 @@ def clear_context() -> None:
     structlog.contextvars.clear_contextvars()
 
 
-def with_context(**kwargs: Any):
+@contextmanager
+def with_context(**kwargs: Any) -> Iterator[None]:
     """
     Context manager for temporary context binding.
 
@@ -273,7 +276,8 @@ def with_context(**kwargs: Any):
             # ... do work ...
             logger.info("completed")
     """
-    return structlog.contextvars.bound_contextvars(**kwargs)
+    with structlog.contextvars.bound_contextvars(**kwargs):
+        yield
 
 
 # Initialize logging on import with defaults
