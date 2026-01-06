@@ -1,8 +1,6 @@
 """Tests for the gRPC server module."""
 
-from datetime import datetime
-from typing import Any
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 

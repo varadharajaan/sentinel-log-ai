@@ -20,10 +20,9 @@ import signal
 import sys
 import threading
 import time
-from collections.abc import Callable
 from concurrent import futures
 from dataclasses import dataclass, field
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import grpc
 
@@ -31,6 +30,9 @@ from sentinel_ml.config import Config, get_config
 from sentinel_ml.logging import get_logger, setup_logging
 from sentinel_ml.models import LogRecord
 from sentinel_ml.preprocessing import PreprocessingService
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
 logger = get_logger(__name__)
 

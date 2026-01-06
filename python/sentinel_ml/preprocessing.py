@@ -22,16 +22,18 @@ from __future__ import annotations
 import time
 import uuid
 from abc import ABC, abstractmethod
-from collections.abc import Callable, Iterable, Iterator
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from sentinel_ml.exceptions import PreprocessingError
 from sentinel_ml.logging import get_logger
 from sentinel_ml.models import LogRecord
 from sentinel_ml.normalization import normalize
 from sentinel_ml.parser import ParserRegistry
+
+if TYPE_CHECKING:
+    from collections.abc import Callable, Iterable, Iterator
 
 logger = get_logger(__name__)
 

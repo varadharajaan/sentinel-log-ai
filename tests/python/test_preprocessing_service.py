@@ -12,8 +12,8 @@ from sentinel_ml.preprocessing import (
     ParsingStage,
     PreprocessingPipeline,
     PreprocessingService,
-    ProcessingStats,
     ProcessingStage,
+    ProcessingStats,
     TimestampStage,
 )
 
@@ -276,12 +276,12 @@ class TestFilterStage:
 
     def test_custom_stage_name(self) -> None:
         """Test custom stage name."""
-        stage = FilterStage(lambda r: True, stage_name="error_filter")
+        stage = FilterStage(lambda _r: True, stage_name="error_filter")
         assert stage.name == "error_filter"
 
     def test_default_stage_name(self) -> None:
         """Test default stage name."""
-        stage = FilterStage(lambda r: True)
+        stage = FilterStage(lambda _r: True)
         assert stage.name == "filter"
 
 
