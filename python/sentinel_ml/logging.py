@@ -17,13 +17,14 @@ import sys
 from datetime import datetime, timezone
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import structlog
-from structlog.types import Processor
 
 from sentinel_ml.config import get_config
 
+if TYPE_CHECKING:
+    from structlog.types import Processor
 
 # Default log directory
 DEFAULT_LOG_DIR = "logs"
@@ -69,7 +70,7 @@ class JSONLRotatingHandler(RotatingFileHandler):
 
 
 def _add_service_info(
-    logger: logging.Logger, method_name: str, event_dict: dict[str, Any]
+    _logger: logging.Logger, _method_name: str, event_dict: dict[str, Any]
 ) -> dict[str, Any]:
     """Add service metadata to each log entry for Athena analysis."""
     event_dict["service"] = "sentinel-ml"
@@ -79,7 +80,7 @@ def _add_service_info(
 
 
 def _add_timestamp_utc(
-    logger: logging.Logger, method_name: str, event_dict: dict[str, Any]
+    _logger: logging.Logger, _method_name: str, event_dict: dict[str, Any]
 ) -> dict[str, Any]:
     """Add ISO8601 UTC timestamp for consistent time-based queries."""
     event_dict["timestamp"] = datetime.now(timezone.utc).isoformat()
@@ -87,7 +88,7 @@ def _add_timestamp_utc(
 
 
 def _format_exception(
-    logger: logging.Logger, method_name: str, event_dict: dict[str, Any]
+    _logger: logging.Logger, _method_name: str, event_dict: dict[str, Any]
 ) -> dict[str, Any]:
     """Format exceptions as structured data instead of multiline strings."""
     if "exception" in event_dict:

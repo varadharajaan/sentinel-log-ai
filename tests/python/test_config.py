@@ -1,19 +1,17 @@
 """Tests for configuration module."""
 
-import os
-import pytest
 import tempfile
 from pathlib import Path
 
 from sentinel_ml.config import (
+    ClusteringConfig,
     Config,
     EmbeddingConfig,
-    VectorStoreConfig,
-    ClusteringConfig,
-    NoveltyConfig,
     LLMConfig,
-    ServerConfig,
     LoggingConfig,
+    NoveltyConfig,
+    ServerConfig,
+    VectorStoreConfig,
     get_config,
     set_config,
 )

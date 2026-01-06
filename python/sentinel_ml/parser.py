@@ -308,7 +308,7 @@ class CommonLogParser(Parser):
     def name(self) -> str:
         return "common"
 
-    def can_parse(self, line: str) -> bool:
+    def can_parse(self, _line: str) -> bool:
         return True  # Fallback parser
 
     def parse(self, line: str, source: str) -> LogRecord | None:
@@ -322,10 +322,7 @@ class CommonLogParser(Parser):
         if ts_str:
             timestamp = self._parse_timestamp(ts_str)
 
-        if level:
-            level = self._normalize_level(level)
-        else:
-            level = self._extract_level(message)
+        level = self._normalize_level(level) if level else self._extract_level(message)
 
         return LogRecord(
             message=message or line,

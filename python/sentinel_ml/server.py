@@ -9,15 +9,11 @@ from __future__ import annotations
 import signal
 import sys
 from concurrent import futures
-from typing import TYPE_CHECKING
 
 import grpc
 
 from sentinel_ml.config import Config, get_config
 from sentinel_ml.logging import get_logger, setup_logging
-
-if TYPE_CHECKING:
-    pass
 
 logger = get_logger(__name__)
 
@@ -81,7 +77,7 @@ def serve(config: Config | None = None) -> None:
     )
 
     # Handle graceful shutdown
-    def shutdown_handler(signum: int, frame: object) -> None:
+    def shutdown_handler(_signum: int, _frame: object) -> None:
         logger.info("Shutting down server...")
         server.stop(grace=5)
         sys.exit(0)

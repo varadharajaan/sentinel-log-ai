@@ -1,18 +1,18 @@
 """Tests for Python log parser module."""
 
+
 import pytest
-from datetime import datetime
 
 from sentinel_ml.parser import (
-    Parser,
-    JSONParser,
-    SyslogParser,
-    NginxParser,
-    PythonTracebackParser,
     CommonLogParser,
+    JSONParser,
+    NginxParser,
+    Parser,
     ParserRegistry,
-    parse_log_line,
+    PythonTracebackParser,
+    SyslogParser,
     get_parser_registry,
+    parse_log_line,
 )
 
 

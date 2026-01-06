@@ -1,9 +1,10 @@
 """Comprehensive tests for the preprocessing pipeline."""
 
-import pytest
 from datetime import datetime, timezone
 
-from sentinel_ml.models import LogRecord, ClusterSummary, Explanation, NoveltyResult
+import pytest
+
+from sentinel_ml.models import ClusterSummary, Explanation, LogRecord, NoveltyResult
 
 
 class TestLogRecordPreprocessing:
@@ -343,7 +344,7 @@ class TestModelValidation:
 
     def test_log_record_required_fields(self):
         """Test that required fields are enforced."""
-        with pytest.raises(Exception):  # ValidationError
+        with pytest.raises(TypeError):  # Missing required positional arguments
             LogRecord()  # Missing required fields
 
     def test_log_record_type_coercion(self):
@@ -359,12 +360,12 @@ class TestModelValidation:
 
     def test_cluster_summary_required_fields(self):
         """Test that required fields are enforced."""
-        with pytest.raises(Exception):
+        with pytest.raises(TypeError):
             ClusterSummary()  # Missing required fields
 
     def test_explanation_required_fields(self):
         """Test that required fields are enforced."""
-        with pytest.raises(Exception):
+        with pytest.raises(TypeError):
             Explanation()  # Missing required fields
 
 

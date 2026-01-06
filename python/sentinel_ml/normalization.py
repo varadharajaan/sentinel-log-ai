@@ -10,10 +10,12 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass, field
-from typing import Callable
+from typing import TYPE_CHECKING
 
 from sentinel_ml.logging import get_logger
-from sentinel_ml.models import LogRecord
+
+if TYPE_CHECKING:
+    from sentinel_ml.models import LogRecord
 
 logger = get_logger(__name__)
 
@@ -46,7 +48,7 @@ class NormalizationPipeline:
     @staticmethod
     def _default_rules() -> list[MaskingRule]:
         """Create the default set of masking rules.
-        
+
         Order matters! More specific patterns should come before general ones.
         """
         return [

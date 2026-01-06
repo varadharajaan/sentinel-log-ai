@@ -2,15 +2,12 @@
 
 from datetime import datetime
 
-import pytest
-
 from sentinel_ml.models import (
     ClusterSummary,
     ConfidenceLevel,
     Explanation,
     LogRecord,
     NoveltyResult,
-    SearchResult,
 )
 
 

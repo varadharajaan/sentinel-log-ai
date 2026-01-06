@@ -8,7 +8,6 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
-from typing import Any
 
 import yaml
 from pydantic import BaseModel, Field
@@ -106,7 +105,7 @@ class Config(BaseSettings):
         if not path.exists():
             return cls()
 
-        with open(path) as f:
+        with path.open() as f:
             data = yaml.safe_load(f) or {}
 
         return cls(**data)
@@ -145,7 +144,7 @@ class Config(BaseSettings):
         path = Path(path)
         path.parent.mkdir(parents=True, exist_ok=True)
 
-        with open(path, "w") as f:
+        with path.open("w") as f:
             yaml.dump(self.model_dump(), f, default_flow_style=False)
 
 

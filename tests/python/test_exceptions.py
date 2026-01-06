@@ -343,5 +343,5 @@ class TestExceptionHierarchy:
 
     def test_can_catch_as_exception(self) -> None:
         """Can catch as generic Exception."""
-        with pytest.raises(Exception):
+        with pytest.raises(ProcessingError):
             raise ProcessingError.embedding_failed(32, "error")
