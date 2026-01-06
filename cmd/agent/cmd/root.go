@@ -35,7 +35,7 @@ func Execute() error {
 func init() {
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is ./sentinel-log-ai.yaml)")
 	rootCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "enable verbose output")
-	
+
 	// Add subcommands
 	rootCmd.AddCommand(ingestCmd)
 	rootCmd.AddCommand(analyzeCmd)
@@ -127,12 +127,12 @@ var serveCmd = &cobra.Command{
 func init() {
 	ingestCmd.Flags().Bool("tail", false, "follow file for new lines (like tail -f)")
 	ingestCmd.Flags().String("pattern", "*", "glob pattern for files in directory mode")
-	
+
 	analyzeCmd.Flags().String("last", "1h", "analyze logs from last duration (e.g., 1h, 30m, 24h)")
-	
+
 	novelCmd.Flags().Bool("follow", false, "continuously monitor for novel patterns")
 	novelCmd.Flags().Float64("threshold", 0.7, "novelty score threshold (0.0-1.0)")
-	
+
 	serveCmd.Flags().Int("port", 8080, "HTTP server port for metrics/health")
 	serveCmd.Flags().String("ml-addr", "localhost:50051", "ML engine gRPC address")
 }
