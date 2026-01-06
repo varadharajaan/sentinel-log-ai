@@ -55,11 +55,14 @@ func TestSetupWithDefaults(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Setup failed: %v", err)
 	}
-	defer logging.Sync()
 
 	// Log something
 	logger := logging.L()
 	logger.Info("test message", logging.Path("/var/log/app.log"))
+
+	// Sync and reset to release file handles on Windows
+	logging.Sync()
+	logging.Setup(&logging.Config{EnableFile: false, EnableConsole: false})
 
 	// Verify log file was created
 	logPath := filepath.Join(tmpDir, "test.jsonl")

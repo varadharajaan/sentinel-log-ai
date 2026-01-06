@@ -64,6 +64,8 @@ var (
 	globalLogger *zap.Logger
 	// globalSugar is the sugared logger for convenience
 	globalSugar *zap.SugaredLogger
+	// fileWriter holds the rotating file writer for cleanup
+	fileWriter *lumberjack.Logger
 )
 
 // Setup initializes the global logger with the given configuration.
