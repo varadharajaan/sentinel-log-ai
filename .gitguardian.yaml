@@ -14,7 +14,7 @@ secret:
   # Known false positives (test data, examples)
   ignored-matches:
     # Test API key patterns used in security module tests
-    - match: sk-test0000000000000000000
+    - match: sk-test000000000000000000000000
       name: "Test API key for PII redaction tests"
     - match: sk-abcdef123456789012345678
       name: "Legacy test API key pattern"
