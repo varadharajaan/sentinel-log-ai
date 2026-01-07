@@ -1043,6 +1043,145 @@ graph LR
 | `ThroughputMetrics` | items/sec, MB/sec, total bytes |
 | `MemoryTracker` | RSS, VMS, peak, growth, GC stats |
 
+## Storage and Retention Architecture
+
+The storage module provides data lifecycle management including retention policies, snapshots, and import/export.
+
+### Storage Module Architecture
+
+```mermaid
+graph TB
+    subgraph "Retention Engine"
+        POLICY[RetentionPolicy]
+        AGE[AgeCriteria]
+        SIZE[SizeCriteria]
+        COMP[CompositeCriteria]
+    end
+
+    subgraph "Snapshot Management"
+        SNAP_MGR[SnapshotManager]
+        SNAP[Snapshot]
+        SNAP_META[SnapshotMetadata]
+    end
+
+    subgraph "Import/Export"
+        EXPORTER[BundleExporter]
+        IMPORTER[BundleImporter]
+        MANIFEST[BundleManifest]
+    end
+
+    subgraph "Versioning"
+        VER_MGR[VersionManager]
+        MIGRATION[Migration]
+        REGISTRY[MigrationRegistry]
+    end
+
+    POLICY --> AGE
+    POLICY --> SIZE
+    POLICY --> COMP
+    SNAP_MGR --> SNAP
+    SNAP --> SNAP_META
+    EXPORTER --> MANIFEST
+    IMPORTER --> MANIFEST
+    VER_MGR --> MIGRATION
+    VER_MGR --> REGISTRY
+```
+
+### Retention Policy Flow
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant Policy as RetentionPolicy
+    participant Criteria as RetentionCriteria
+    participant Observer as RetentionObserver
+    participant FS as FileSystem
+
+    User->>Policy: apply(directory)
+    Policy->>Observer: notify(STARTED)
+    Policy->>FS: scan files
+    
+    loop For each file
+        Policy->>Criteria: should_delete(file)
+        alt Delete
+            Policy->>FS: unlink(file)
+            Policy->>Observer: notify(FILE_DELETED)
+        end
+    end
+
+    Policy->>Observer: notify(COMPLETED)
+    Policy-->>User: RetentionResult
+```
+
+### Snapshot Lifecycle
+
+```mermaid
+stateDiagram-v2
+    [*] --> Creating
+    Creating --> Completed: success
+    Creating --> Failed: error
+    Completed --> Deleted: delete()
+    Failed --> [*]
+    Deleted --> [*]
+    
+    Completed --> Restoring: restore()
+    Restoring --> Completed: success
+```
+
+### Import/Export Bundle Structure
+
+```
+bundle.tar.gz
+    bundle_metadata.json     # Bundle metadata
+    bundle_manifest.json     # File checksums
+    vectors/                  # Vector index files
+        index.faiss
+        metadata.json
+    config/                   # Configuration
+        sentinel-ml.yaml
+    data/                     # Additional data
+        clusters.json
+```
+
+### Version Migration Flow
+
+```mermaid
+flowchart TD
+    START[Check Version] --> COMPARE{Current == Target?}
+    COMPARE -->|Yes| DONE[No Migration Needed]
+    COMPARE -->|No| FIND[Find Migration Path]
+    FIND --> PATH{Path Found?}
+    PATH -->|No| ERROR[No Path Available]
+    PATH -->|Yes| APPLY[Apply Migrations]
+    APPLY --> UPDATE[Update Version File]
+    UPDATE --> DONE
+```
+
+### Retention Policies
+
+| Policy Type | Criteria | Use Case |
+|-------------|----------|----------|
+| `AgeCriteria` | Files older than N days | Remove old logs |
+| `SizeCriteria` | Directory exceeds N MB | Disk space management |
+| `CompositeCriteria` | AND/OR combination | Complex policies |
+
+### Snapshot Configuration
+
+| Setting | Default | Description |
+|---------|---------|-------------|
+| `max_snapshots` | 10 | Maximum retained snapshots |
+| `compression_level` | 6 | Gzip compression (1-9) |
+| `auto_cleanup` | true | Auto-delete old snapshots |
+
+### Schema Versioning
+
+Follows semantic versioning (MAJOR.MINOR.PATCH):
+- **MAJOR**: Breaking changes requiring migration
+- **MINOR**: Backward-compatible additions
+- **PATCH**: Backward-compatible fixes
+
+Compatibility rule: Same MAJOR version = compatible.
+
 ## Security Considerations
 
 1. **Data Masking**: PII/sensitive data masked during normalization
