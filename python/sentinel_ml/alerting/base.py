@@ -85,9 +85,7 @@ class AlertEvent:
     priority: AlertPriority = AlertPriority.MEDIUM
     source: str = "sentinel-ml"
     event_id: str = field(default_factory=lambda: str(uuid.uuid4()))
-    timestamp: datetime = field(
-        default_factory=lambda: datetime.now(tz=timezone.utc)
-    )
+    timestamp: datetime = field(default_factory=lambda: datetime.now(tz=timezone.utc))
     metadata: dict[str, Any] = field(default_factory=dict)
     tags: list[str] = field(default_factory=list)
 

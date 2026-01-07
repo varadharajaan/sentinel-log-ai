@@ -121,22 +121,22 @@ class RoutingRule:
             value = expected.get("value")
 
             if operator == MatchOperator.EQUALS:
-                return actual == value
+                return bool(actual == value)
             elif operator == MatchOperator.CONTAINS:
-                return value in str(actual)
+                return str(value) in str(actual)
             elif operator == MatchOperator.REGEX:
-                return bool(re.search(value, str(actual)))
+                return bool(re.search(str(value), str(actual)))
             elif operator == MatchOperator.IN:
-                return actual in value
+                return actual in (value if value is not None else [])
             elif operator == MatchOperator.NOT_IN:
-                return actual not in value
+                return actual not in (value if value is not None else [])
             elif operator == MatchOperator.GTE:
-                return actual >= value
+                return bool(actual >= value)
             elif operator == MatchOperator.LTE:
-                return actual <= value
+                return bool(actual <= value)
             return False
 
-        return actual == expected
+        return bool(actual == expected)
 
 
 @dataclass
@@ -280,9 +280,7 @@ class AlertRouter:
 
         return targets
 
-    def _deliver(
-        self, event: AlertEvent, notifiers: list[BaseNotifier]
-    ) -> list[AlertResult]:
+    def _deliver(self, event: AlertEvent, notifiers: list[BaseNotifier]) -> list[AlertResult]:
         """Deliver event to notifiers."""
         results: list[AlertResult] = []
 
@@ -302,12 +300,14 @@ class AlertRouter:
                     notifier=notifier.name,
                     error=str(e),
                 )
-                results.append(AlertResult(
-                    event_id=event.event_id,
-                    status=AlertStatus.FAILED,
-                    notifier_name=notifier.name,
-                    error=str(e),
-                ))
+                results.append(
+                    AlertResult(
+                        event_id=event.event_id,
+                        status=AlertStatus.FAILED,
+                        notifier_name=notifier.name,
+                        error=str(e),
+                    )
+                )
                 self._stats.failed_deliveries += 1
 
         return results

@@ -159,10 +159,26 @@ llm:
 
 ## Next Steps
 
+- [[Demo|demo/README]] - **See ML vs Regex detection in action**
 - [[Installation]] - Detailed installation guide
 - [[Configuration]] - All configuration options
 - [[CLI Reference|CLI-UX]] - Complete CLI documentation
 - [[Architecture Overview|Architecture-Overview]] - System design
+
+## 🎯 Try the ML vs Regex Demo
+
+Want to see why ML beats regex for security detection? Run our interactive demo:
+
+```bash
+cd demo
+python demo_ml_vs_regex.py
+```
+
+This demo shows:
+- **Regex**: Catches 4/4 known attacks, but 0/17 novel attacks (0%)
+- **ML**: Catches 4/4 known attacks AND 14/17 novel attacks (82%)
+
+See [docs/demo.md](../docs/demo.md) for full details.
 
 ---
 

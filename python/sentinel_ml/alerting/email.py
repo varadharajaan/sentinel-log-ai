@@ -193,11 +193,13 @@ class EmailNotifier(BaseNotifier):
             for key, value in event.metadata.items():
                 lines.append(f"  {key}: {value}")
 
-        lines.extend([
-            "",
-            "---",
-            "This is an automated message from Sentinel ML.",
-        ])
+        lines.extend(
+            [
+                "",
+                "---",
+                "This is an automated message from Sentinel ML.",
+            ]
+        )
 
         return "\n".join(lines)
 
@@ -219,8 +221,11 @@ class EmailNotifier(BaseNotifier):
 
         tags_html = ""
         if event.tags:
-            tag_spans = [f'<span style="background:#e9ecef;padding:2px 6px;margin:2px;border-radius:3px;">{tag}</span>' for tag in event.tags]
-            tags_html = f'<p><strong>Tags:</strong> {"".join(tag_spans)}</p>'
+            tag_spans = [
+                f'<span style="background:#e9ecef;padding:2px 6px;margin:2px;border-radius:3px;">{tag}</span>'
+                for tag in event.tags
+            ]
+            tags_html = f"<p><strong>Tags:</strong> {''.join(tag_spans)}</p>"
 
         return f"""<!DOCTYPE html>
 <html>
@@ -252,7 +257,7 @@ class EmailNotifier(BaseNotifier):
             <h3>Message</h3>
             <p style="background: #f8f9fa; padding: 15px; border-radius: 4px;">{event.message}</p>
             {tags_html}
-            {f'<h3>Metadata</h3><table style="width: 100%;">{metadata_rows}</table>' if metadata_rows else ''}
+            {f'<h3>Metadata</h3><table style="width: 100%;">{metadata_rows}</table>' if metadata_rows else ""}
         </div>
         <p style="color: #6c757d; font-size: 12px; margin-top: 20px;">
             This is an automated message from Sentinel ML.
@@ -299,6 +304,7 @@ class EmailNotifier(BaseNotifier):
 
         context = ssl.create_default_context() if (config.use_tls or config.use_ssl) else None
 
+        server: smtplib.SMTP | smtplib.SMTP_SSL
         try:
             if config.use_ssl:
                 server = smtplib.SMTP_SSL(
@@ -360,6 +366,7 @@ class EmailNotifier(BaseNotifier):
         if not super().health_check():
             return False
 
+        server: smtplib.SMTP | smtplib.SMTP_SSL
         try:
             config = self._email_config
             if config.use_ssl:

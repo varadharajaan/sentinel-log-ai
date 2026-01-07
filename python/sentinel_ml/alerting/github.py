@@ -194,32 +194,38 @@ class GitHubIssueCreator(BaseNotifier):
         ]
 
         if event.tags:
-            lines.extend([
-                "",
-                "## Tags",
-                "",
-                ", ".join(f"`{tag}`" for tag in event.tags),
-            ])
+            lines.extend(
+                [
+                    "",
+                    "## Tags",
+                    "",
+                    ", ".join(f"`{tag}`" for tag in event.tags),
+                ]
+            )
 
         if self._github_config.include_metadata and event.metadata:
-            lines.extend([
-                "",
-                "## Metadata",
-                "",
-                "| Key | Value |",
-                "|-----|-------|",
-            ])
+            lines.extend(
+                [
+                    "",
+                    "## Metadata",
+                    "",
+                    "| Key | Value |",
+                    "|-----|-------|",
+                ]
+            )
             for key, value in event.metadata.items():
                 # Escape pipe characters in values
                 safe_value = str(value).replace("|", "\\|")[:200]
                 lines.append(f"| {key} | {safe_value} |")
 
-        lines.extend([
-            "",
-            "---",
-            "",
-            "*This issue was automatically created by Sentinel ML.*",
-        ])
+        lines.extend(
+            [
+                "",
+                "---",
+                "",
+                "*This issue was automatically created by Sentinel ML.*",
+            ]
+        )
 
         return "\n".join(lines)
 
@@ -265,13 +271,13 @@ class GitHubIssueCreator(BaseNotifier):
             response = self._api_request(
                 "GET",
                 url,
-                params={"q": query, "per_page": 1},
+                params={"q": query, "per_page": "1"},
             )
 
             if response.get("total_count", 0) > 0:
                 items = response.get("items", [])
                 if items:
-                    return items[0]
+                    return dict(items[0])
 
         except HTTPError as e:
             if e.code != 404:
@@ -324,11 +330,10 @@ class GitHubIssueCreator(BaseNotifier):
         request = Request(url, data=data, headers=headers, method=method)
 
         try:
-            with urlopen(
-                request, timeout=self._github_config.timeout_seconds
-            ) as response:
+            with urlopen(request, timeout=self._github_config.timeout_seconds) as response:
                 body = response.read().decode("utf-8")
-                return json.loads(body)
+                result: dict[str, Any] = json.loads(body)
+                return result
         except HTTPError as e:
             self._logger.error(
                 "github_api_error",
