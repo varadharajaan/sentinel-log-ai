@@ -809,3 +809,134 @@ flowchart TD
     READ --> FORMAT[Format Display]
     FORMAT --> OUTPUT[Console Output]
 ```
+
+## Phase 8: Alerting and Notifications
+
+### Watch Daemon Flow
+
+```mermaid
+flowchart TD
+    START[Start Daemon] --> INIT[Initialize]
+    INIT --> DISCOVER[Discover Files]
+    DISCOVER --> RECORD[Record Initial Positions]
+    RECORD --> POLL{Poll Loop}
+    
+    POLL --> CHECK[Check Files]
+    CHECK --> NEW{New Lines?}
+    NEW -->|No| WAIT[Wait Interval]
+    WAIT --> POLL
+    
+    NEW -->|Yes| READ[Read New Lines]
+    READ --> DETECT[Run Novelty Detector]
+    DETECT --> NOVEL{Score >= Threshold?}
+    
+    NOVEL -->|No| POLL
+    NOVEL -->|Yes| CREATE[Create AlertEvent]
+    CREATE --> NOTIFY[Notify All Notifiers]
+    NOTIFY --> POLL
+    
+    POLL -->|Stop Signal| CLEANUP[Cleanup]
+    CLEANUP --> END[Stopped]
+```
+
+### Alert Routing Decision Flow
+
+```mermaid
+flowchart TD
+    EVENT[AlertEvent] --> ROUTER[Alert Router]
+    ROUTER --> RULES[Evaluate Rules]
+    
+    RULES --> R1{Rule 1 Match?}
+    R1 -->|Yes| N1[Send to Notifiers]
+    N1 --> STOP1{Stop on Match?}
+    STOP1 -->|Yes| DONE[Routing Complete]
+    STOP1 -->|No| R2{Rule 2 Match?}
+    
+    R1 -->|No| R2
+    R2 -->|Yes| N2[Send to Notifiers]
+    N2 --> STOP2{Stop on Match?}
+    STOP2 -->|Yes| DONE
+    STOP2 -->|No| RN{More Rules?}
+    
+    R2 -->|No| RN
+    RN -->|Yes| CONTINUE[Continue Evaluation]
+    CONTINUE --> R2
+    
+    RN -->|No| MATCHED{Any Matches?}
+    MATCHED -->|Yes| DONE
+    MATCHED -->|No| FALLBACK[Send to Fallback]
+    FALLBACK --> DONE
+```
+
+### Notification Delivery Flow
+
+```mermaid
+sequenceDiagram
+    participant Router as Alert Router
+    participant Base as BaseNotifier
+    participant Impl as Notifier Impl
+    participant External as External Service
+
+    Router->>Base: send(event)
+    Base->>Base: Check enabled
+    Base->>Base: Validate config
+    
+    loop Retry Loop
+        Base->>Impl: _send_impl(event)
+        Impl->>Impl: Build payload
+        Impl->>External: HTTP POST
+        
+        alt Success
+            External-->>Impl: 200 OK
+            Impl-->>Base: AlertResult(SUCCESS)
+            Base->>Base: Update stats
+            Base-->>Router: Result
+        else Failure
+            External-->>Impl: Error
+            Impl-->>Base: Exception
+            Base->>Base: Increment retry
+            alt More Retries
+                Base->>Base: Wait delay
+            else Max Retries
+                Base->>Base: Update stats
+                Base-->>Router: AlertResult(FAILED)
+            end
+        end
+    end
+```
+
+### Health Check Aggregation
+
+```mermaid
+flowchart TD
+    HC[Health Check] --> INIT[Start Check]
+    INIT --> DAEMON{Watch Daemon?}
+    
+    DAEMON -->|Yes| CHECK_D[Check Daemon Status]
+    CHECK_D --> D_STATUS{Status?}
+    D_STATUS -->|RUNNING| D_OK[daemon: HEALTHY]
+    D_STATUS -->|STARTING| D_DEG[daemon: DEGRADED]
+    D_STATUS -->|ERROR| D_BAD[daemon: UNHEALTHY]
+    
+    DAEMON -->|No| NOTIFIERS
+    D_OK --> NOTIFIERS
+    D_DEG --> NOTIFIERS
+    D_BAD --> NOTIFIERS
+    
+    NOTIFIERS{Notifiers?} -->|Yes| CHECK_N[Check Each Notifier]
+    CHECK_N --> N_LOOP[For Each Notifier]
+    N_LOOP --> N_HEALTH[health_check()]
+    N_HEALTH --> N_STATUS{Healthy?}
+    N_STATUS -->|Yes| N_OK[notifier: HEALTHY]
+    N_STATUS -->|No| N_BAD[notifier: UNHEALTHY]
+    N_OK --> N_NEXT{More?}
+    N_BAD --> N_NEXT
+    N_NEXT -->|Yes| N_LOOP
+    N_NEXT -->|No| AGGREGATE
+    
+    NOTIFIERS -->|No| AGGREGATE
+    
+    AGGREGATE[Aggregate Status] --> WORST[Worst Status Wins]
+    WORST --> RESPONSE[Build Response]
+    RESPONSE --> RETURN[Return Health Status]
+```
