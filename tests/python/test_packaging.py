@@ -102,9 +102,7 @@ class TestSemanticVersion:
         """Test converting version to string."""
         assert str(sample_version) == "1.2.3"
 
-    def test_prerelease_version_to_string(
-        self, sample_prerelease_version: SemanticVersion
-    ) -> None:
+    def test_prerelease_version_to_string(self, sample_prerelease_version: SemanticVersion) -> None:
         """Test converting prerelease version to string."""
         assert str(sample_prerelease_version) == "1.0.0-alpha.1"
 
@@ -146,9 +144,7 @@ class TestSemanticVersion:
         assert bumped.minor == 2
         assert bumped.patch == 4
 
-    def test_bump_clears_prerelease(
-        self, sample_prerelease_version: SemanticVersion
-    ) -> None:
+    def test_bump_clears_prerelease(self, sample_prerelease_version: SemanticVersion) -> None:
         """Test that bumping clears prerelease identifier."""
         bumped = sample_prerelease_version.bump(VersionBumpType.MINOR)
         assert bumped.prerelease is None
@@ -375,9 +371,7 @@ class TestBuildArtifact:
 
         assert artifact.verify_checksum() is True
 
-    def test_artifact_verify_checksum_fails_for_tampered(
-        self, temp_dir: Path
-    ) -> None:
+    def test_artifact_verify_checksum_fails_for_tampered(self, temp_dir: Path) -> None:
         """Test checksum verification fails for tampered artifact."""
         artifact_path = temp_dir / "artifact.whl"
         artifact_path.write_bytes(b"original content")

@@ -479,11 +479,13 @@ class VersionManager:
                         check=True,
                     )
 
-                    history.append({
-                        "version": version.to_dict(),
-                        "tag": tag,
-                        "date": tag_date_result.stdout.strip(),
-                    })
+                    history.append(
+                        {
+                            "version": version.to_dict(),
+                            "tag": tag,
+                            "date": tag_date_result.stdout.strip(),
+                        }
+                    )
                 except ValueError:
                     logger.warning("invalid_version_tag", tag=tag)
                     continue

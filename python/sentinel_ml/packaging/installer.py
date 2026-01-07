@@ -203,9 +203,7 @@ class DependencyChecker:
         installed_count = sum(
             1 for d in self._dependencies if d.status == DependencyStatus.INSTALLED
         )
-        missing_count = sum(
-            1 for d in self._dependencies if d.status == DependencyStatus.MISSING
-        )
+        missing_count = sum(1 for d in self._dependencies if d.status == DependencyStatus.MISSING)
 
         logger.info(
             "dependencies_checked",
@@ -255,16 +253,12 @@ class DependencyChecker:
     def get_missing_required(self) -> list[DependencyInfo]:
         """Get list of missing required dependencies."""
         return [
-            d for d in self._dependencies
-            if d.status == DependencyStatus.MISSING and not d.optional
+            d for d in self._dependencies if d.status == DependencyStatus.MISSING and not d.optional
         ]
 
     def get_missing_optional(self) -> list[DependencyInfo]:
         """Get list of missing optional dependencies."""
-        return [
-            d for d in self._dependencies
-            if d.status == DependencyStatus.OPTIONAL
-        ]
+        return [d for d in self._dependencies if d.status == DependencyStatus.OPTIONAL]
 
     def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary representation."""
@@ -305,7 +299,9 @@ class InstallationVerifier:
         checks_failed: list[str] = []
         warnings: list[str] = []
 
-        python_version = f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
+        python_version = (
+            f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
+        )
         checks_passed.append(f"Python version {python_version}")
 
         package_version = self._check_package_installed()

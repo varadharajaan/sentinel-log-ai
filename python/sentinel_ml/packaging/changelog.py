@@ -287,7 +287,9 @@ class ChangelogGenerator:
         try:
             result = subprocess.run(
                 [
-                    "git", "log", range_spec,
+                    "git",
+                    "log",
+                    range_spec,
                     "--pretty=format:%H|%s|%an",
                     "--no-merges",
                 ],

@@ -271,9 +271,11 @@ class ReleaseNotesGenerator:
         try:
             result = subprocess.run(
                 [
-                    "git", "log",
+                    "git",
+                    "log",
                     "--format=%aN",
-                    "-n", "50",
+                    "-n",
+                    "50",
                 ],
                 capture_output=True,
                 text=True,
@@ -465,8 +467,12 @@ class ReleaseManager:
 
         subprocess.run(
             [
-                "python", "-m", "twine", "upload",
-                "--repository", self.config.pypi_repository,
+                "python",
+                "-m",
+                "twine",
+                "upload",
+                "--repository",
+                self.config.pypi_repository,
                 str(dist_dir / "*.whl"),
                 str(dist_dir / "*.tar.gz"),
             ],
@@ -516,10 +522,14 @@ class ReleaseManager:
             return
 
         args = [
-            "gh", "release", "create",
+            "gh",
+            "release",
+            "create",
             self.release.tag_name,
-            "--title", f"Release {self.config.version}",
-            "--notes", self.release.notes,
+            "--title",
+            f"Release {self.config.version}",
+            "--notes",
+            self.release.notes,
         ]
 
         if self.config.draft:

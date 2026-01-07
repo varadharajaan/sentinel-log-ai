@@ -471,9 +471,12 @@ class BuildRunner:
         try:
             subprocess.run(
                 [
-                    "docker", "build",
-                    "-t", image_name,
-                    "-f", str(dockerfile),
+                    "docker",
+                    "build",
+                    "-t",
+                    image_name,
+                    "-f",
+                    str(dockerfile),
                     str(self.config.project_root),
                 ],
                 capture_output=True,
@@ -512,7 +515,8 @@ class BuildRunner:
             subprocess.run(
                 [
                     "pyinstaller",
-                    "--distpath", str(self.config.output_dir),
+                    "--distpath",
+                    str(self.config.output_dir),
                     str(spec_file),
                 ],
                 capture_output=True,
@@ -552,9 +556,12 @@ class BuildRunner:
         try:
             subprocess.run(
                 [
-                    "go", "build",
-                    "-o", str(output_path),
-                    "-ldflags", f"-X main.version={self.config.version}",
+                    "go",
+                    "build",
+                    "-o",
+                    str(output_path),
+                    "-ldflags",
+                    f"-X main.version={self.config.version}",
                     "./cmd/agent",
                 ],
                 capture_output=True,
