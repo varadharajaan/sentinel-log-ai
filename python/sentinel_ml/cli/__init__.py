@@ -14,6 +14,7 @@ Design Patterns:
 - Template Method: Report generation templates
 - Facade Pattern: Simple CLI interface to complex formatting
 - Observer Pattern: Progress tracking callbacks
+- Decorator Pattern: Transparent timing via profiler
 
 SOLID Principles:
 - Single Responsibility: Each component has one job
@@ -26,45 +27,121 @@ Usage:
     from sentinel_ml.cli import Console, Theme
     console = Console(theme=Theme.DARK)
     console.print_table(data, title="Results")
+
+    # With profiling
+    from sentinel_ml.cli import Profiler
+    profiler = Profiler()
+    with profiler.measure("operation"):
+        do_work()
+    profiler.print_report()
 """
 
-from sentinel_ml.cli.console import Console, ConsoleConfig
+from sentinel_ml.cli.config_cmd import (
+    generate_config,
+    load_config,
+    show_config,
+    validate_config,
+)
+from sentinel_ml.cli.console import CapturedOutput, Console, ConsoleConfig, OutputFormat
 from sentinel_ml.cli.formatters import (
     ClusterFormatter,
     ExplanationFormatter,
+    FormatOptions,
     Formatter,
     JSONFormatter,
     LogRecordFormatter,
     NoveltyFormatter,
+    ProfileFormatter,
+    ProfileTiming,
+    TableColumn,
+    TableData,
     TableFormatter,
 )
-from sentinel_ml.cli.progress import ProgressTracker, SpinnerContext, TaskProgress
-from sentinel_ml.cli.report import HTMLReporter, MarkdownReporter, ReportConfig, Reporter
-from sentinel_ml.cli.themes import Theme, ThemeColors, get_theme
+from sentinel_ml.cli.profiler import (
+    Profiler,
+    TimingEntry,
+    disable_profiling,
+    enable_profiling,
+    get_profiler,
+    measure,
+    profile,
+)
+from sentinel_ml.cli.progress import (
+    ProgressTracker,
+    SpinnerContext,
+    SpinnerType,
+    TaskProgress,
+    spinner,
+    timed_operation,
+)
+from sentinel_ml.cli.report import (
+    HTMLReporter,
+    MarkdownReporter,
+    ReportConfig,
+    ReportData,
+    Reporter,
+)
+from sentinel_ml.cli.themes import (
+    Theme,
+    ThemeColors,
+    get_confidence_color,
+    get_log_level_color,
+    get_novelty_color,
+    get_severity_color,
+    get_theme,
+)
 
 __all__ = [
     # Console
     "Console",
     "ConsoleConfig",
+    "CapturedOutput",
+    "OutputFormat",
     # Formatters
     "Formatter",
+    "FormatOptions",
     "TableFormatter",
+    "TableColumn",
+    "TableData",
     "JSONFormatter",
     "ClusterFormatter",
     "NoveltyFormatter",
     "ExplanationFormatter",
     "LogRecordFormatter",
+    "ProfileFormatter",
+    "ProfileTiming",
     # Progress
     "ProgressTracker",
     "TaskProgress",
     "SpinnerContext",
+    "SpinnerType",
+    "spinner",
+    "timed_operation",
+    # Profiler
+    "Profiler",
+    "TimingEntry",
+    "get_profiler",
+    "enable_profiling",
+    "disable_profiling",
+    "measure",
+    "profile",
     # Themes
     "Theme",
     "ThemeColors",
     "get_theme",
+    "get_severity_color",
+    "get_novelty_color",
+    "get_confidence_color",
+    "get_log_level_color",
     # Reports
     "Reporter",
+    "ReportData",
+    "ReportConfig",
     "MarkdownReporter",
     "HTMLReporter",
-    "ReportConfig",
+    # Config
+    "generate_config",
+    "validate_config",
+    "load_config",
+    "show_config",
 ]

@@ -7,10 +7,12 @@ This package provides the AI/ML capabilities for log analysis:
 - Clustering with HDBSCAN
 - Novelty detection with k-NN density estimation
 - LLM-powered explanations via Ollama
+- Rich CLI output with themes, progress, and reports
 """
 
-__version__ = "0.5.0"
+__version__ = "0.6.0"
 __all__ = [
+    "cli",
     "clustering",
     "config",
     "embedding",
