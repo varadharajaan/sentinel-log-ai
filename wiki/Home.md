@@ -97,7 +97,21 @@ Everything runs on your machine:
 ## 🚀 Quick Links
 
 - [GitHub Repository](https://github.com/varadharajaan/sentinel-log-ai)
+- [Technical Docs (in repo)](https://github.com/varadharajaan/sentinel-log-ai/tree/main/docs)
 - [Issues & Bug Reports](https://github.com/varadharajaan/sentinel-log-ai/issues)
+
+---
+
+## 📁 Technical Documentation
+
+For in-depth technical specifications, see the [`docs/`](https://github.com/varadharajaan/sentinel-log-ai/tree/main/docs) directory:
+
+| Document | Description |
+|----------|-------------|
+| [Architecture](https://github.com/varadharajaan/sentinel-log-ai/blob/main/docs/architecture.md) | System architecture with Mermaid diagrams |
+| [Data Flow](https://github.com/varadharajaan/sentinel-log-ai/blob/main/docs/data-flow.md) | End-to-end data flow and sequence diagrams |
+| [Error Handling](https://github.com/varadharajaan/sentinel-log-ai/blob/main/docs/error-handling.md) | Error codes, exceptions, recovery strategies |
+| [Logging](https://github.com/varadharajaan/sentinel-log-ai/blob/main/docs/logging.md) | JSONL format, Athena integration |
 - [Pull Requests](https://github.com/varadharajaan/sentinel-log-ai/pulls)
 - [Releases](https://github.com/varadharajaan/sentinel-log-ai/releases)
 
