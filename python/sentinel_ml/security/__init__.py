@@ -41,8 +41,8 @@ from sentinel_ml.security.privacy import (
     PrivacyMode,
     PrivacyReport,
     RawLogPolicy,
-    SanitizedLog,
     SanitizationResult,
+    SanitizedLog,
 )
 from sentinel_ml.security.redaction import (
     CompositeRedactor,
@@ -58,7 +58,8 @@ from sentinel_ml.security.redaction import (
 )
 
 __all__ = [
-    # Encryption
+    "CompositeRedactor",
+    "CustomPattern",
     "DecryptionError",
     "EncryptedData",
     "EncryptedStore",
@@ -69,19 +70,13 @@ __all__ = [
     "FernetEncryptionProvider",
     "KeyDerivationConfig",
     "KeyManager",
-    # Privacy
+    "PIIType",
     "PrivacyConfig",
     "PrivacyLevel",
     "PrivacyManager",
     "PrivacyMode",
     "PrivacyReport",
     "RawLogPolicy",
-    "SanitizedLog",
-    "SanitizationResult",
-    # Redaction
-    "CompositeRedactor",
-    "CustomPattern",
-    "PIIType",
     "RedactionConfig",
     "RedactionLevel",
     "RedactionResult",
@@ -89,4 +84,6 @@ __all__ = [
     "Redactor",
     "RedactorFactory",
     "RegexRedactor",
+    "SanitizationResult",
+    "SanitizedLog",
 ]

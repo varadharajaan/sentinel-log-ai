@@ -19,7 +19,6 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
-from pathlib import Path
 from typing import Any
 
 import structlog
@@ -28,8 +27,6 @@ from sentinel_ml.security.redaction import (
     PIIType,
     RedactionConfig,
     RedactionLevel,
-    RedactionResult,
-    Redactor,
     RedactorFactory,
 )
 
@@ -286,13 +283,11 @@ class PrivacyManager:
         self.config = config
         self.redactor = RedactorFactory.create(config.redaction_config)
         self._observers: list[PrivacyObserver] = []
-        self._stats = {
-            "total_processed": 0,
-            "pii_detected": 0,
-            "logs_stored": 0,
-            "logs_discarded": 0,
-            "redactions_by_type": {},
-        }
+        self._total_processed: int = 0
+        self._pii_detected: int = 0
+        self._logs_stored: int = 0
+        self._logs_discarded: int = 0
+        self._redactions_by_type: dict[str, int] = {}
 
         logger.info(
             "privacy_manager_initialized",
@@ -355,14 +350,14 @@ class PrivacyManager:
 
         elapsed_ms = (time.perf_counter() - start_time) * 1000
 
-        self._stats["total_processed"] += 1
+        self._total_processed += 1
 
         if result.pii_types_found:
-            self._stats["pii_detected"] += 1
+            self._pii_detected += 1
             for pii_type in result.pii_types_found:
                 type_key = pii_type.value
-                self._stats["redactions_by_type"][type_key] = (
-                    self._stats["redactions_by_type"].get(type_key, 0) + 1
+                self._redactions_by_type[type_key] = (
+                    self._redactions_by_type.get(type_key, 0) + 1
                 )
             self._notify_pii_detected(original_hash, set(result.pii_types_found))
 
@@ -442,6 +437,8 @@ class PrivacyManager:
         Returns:
             True if storage is allowed.
         """
+        _ = sanitized_log  # May be used for future policy checks
+
         if self.config.mode == PrivacyMode.NEVER_STORE:
             return False
 
@@ -471,8 +468,8 @@ class PrivacyManager:
         report = PrivacyReport(
             generated_at=datetime.now(tz=timezone.utc),
             config=self.config,
-            total_logs_processed=self._stats["total_processed"],
-            pii_detections=self._stats["redactions_by_type"].copy(),
+            total_logs_processed=self._total_processed,
+            pii_detections=self._redactions_by_type.copy(),
             storage_mode=self.config.mode,
             encryption_enabled=self.config.encrypt_at_rest,
             data_retention_policy=retention_policy,
@@ -497,24 +494,18 @@ class PrivacyManager:
             )
 
         if not self.config.encrypt_at_rest:
-            recommendations.append(
-                "Enable at-rest encryption to protect stored data"
-            )
+            recommendations.append("Enable at-rest encryption to protect stored data")
 
         if self.config.data_retention_days == 0:
-            recommendations.append(
-                "Set a data retention policy to automatically delete old data"
-            )
+            recommendations.append("Set a data retention policy to automatically delete old data")
 
         if self.config.mode == PrivacyMode.STORE_ALL:
-            recommendations.append(
-                "Switch to STORE_REDACTED mode to avoid storing PII"
-            )
+            recommendations.append("Switch to STORE_REDACTED mode to avoid storing PII")
 
         pii_rate = (
-            self._stats["pii_detected"] / self._stats["total_processed"]
-            if self._stats["total_processed"] > 0
-            else 0
+            self._pii_detected / self._total_processed
+            if self._total_processed > 0
+            else 0.0
         )
 
         if pii_rate > 0.5:
@@ -552,7 +543,9 @@ class PrivacyManager:
         """Get privacy statistics."""
         return {
             **self._stats,
-            "redactor_stats": self.redactor.stats.to_dict() if hasattr(self.redactor, "stats") else {},
+            "redactor_stats": self.redactor.stats.to_dict()
+            if hasattr(self.redactor, "stats")
+            else {},
         }
 
     def reset_stats(self) -> None:

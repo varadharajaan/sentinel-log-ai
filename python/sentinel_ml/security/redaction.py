@@ -407,7 +407,9 @@ class RegexRedactor(Redactor):
                     )
                     pii_types_found.add(pii_type)
 
-                    redacted_text = redacted_text[: match.start()] + replacement + redacted_text[match.end() :]
+                    redacted_text = (
+                        redacted_text[: match.start()] + replacement + redacted_text[match.end() :]
+                    )
 
         elapsed_ms = (time.perf_counter() - start_time) * 1000
 

@@ -340,9 +340,7 @@ class FernetEncryptionProvider(EncryptionProvider):
         self._ensure_cryptography()
 
         if key.key_id != encrypted.key_id:
-            raise DecryptionError(
-                f"Key ID mismatch: expected {encrypted.key_id}, got {key.key_id}"
-            )
+            raise DecryptionError(f"Key ID mismatch: expected {encrypted.key_id}, got {key.key_id}")
 
         if key.is_expired():
             logger.warning("decrypting_with_expired_key", key_id=key.key_id)
@@ -504,7 +502,9 @@ class KeyManager:
 
         return new_key
 
-    def derive_key_from_password(self, password: str, salt: bytes | None = None) -> tuple[EncryptionKey, bytes]:
+    def derive_key_from_password(
+        self, password: str, salt: bytes | None = None
+    ) -> tuple[EncryptionKey, bytes]:
         """
         Derive an encryption key from a password.
 
@@ -519,8 +519,8 @@ class KeyManager:
             salt = os.urandom(self.config.key_derivation.salt_length)
 
         try:
-            from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
             from cryptography.hazmat.primitives import hashes
+            from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 
             kdf = PBKDF2HMAC(
                 algorithm=hashes.SHA256(),
@@ -532,8 +532,6 @@ class KeyManager:
             key_bytes = kdf.derive(password.encode())
 
             if self.config.algorithm == EncryptionAlgorithm.FERNET:
-                from cryptography.fernet import Fernet
-
                 fernet_key = base64.urlsafe_b64encode(key_bytes)
                 key_data = fernet_key.decode()
             else:
@@ -557,9 +555,7 @@ class KeyManager:
             return key, salt
 
         except ImportError as e:
-            raise EncryptionError(
-                "cryptography package required for key derivation"
-            ) from e
+            raise EncryptionError("cryptography package required for key derivation") from e
 
     def export_keys_metadata(self) -> list[dict[str, Any]]:
         """
