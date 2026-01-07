@@ -1,0 +1,25 @@
+# GitGuardian Configuration
+# https://docs.gitguardian.com/ggshield-docs/reference/gitguardian-yaml
+
+version: 2
+
+secret:
+  # Paths to ignore during secret detection
+  ignored-paths:
+    - "tests/**"
+    - "**/test_*.py"
+    - "**/*_test.go"
+    - "demo/**"
+
+  # Known false positives (test data, examples)
+  ignored-matches:
+    # Test API key patterns used in security module tests
+    - match: sk-test0000000000000000000
+      name: "Test API key for PII redaction tests"
+    - match: sk-abcdef123456789012345678
+      name: "Legacy test API key pattern"
+    # Test credit card number (standard test card)
+    - match: "4111-1111-1111-1111"
+      name: "Test credit card number"
+    - match: "4111111111111111"
+      name: "Test credit card number without dashes"
