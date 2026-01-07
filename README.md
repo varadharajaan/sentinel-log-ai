@@ -1,11 +1,21 @@
 ﻿# Sentinel Log AI
 
+<div align="center">
+
 [![CI](https://github.com/varadharajaan/sentinel-log-ai/actions/workflows/ci.yml/badge.svg)](https://github.com/varadharajaan/sentinel-log-ai/actions/workflows/ci.yml)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![Go 1.22+](https://img.shields.io/badge/go-1.22+-00ADD8.svg)](https://golang.org/dl/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 **AI-powered log intelligence engine for on-call engineers.**
+
+*Crafted with ❤️ by [Varad](https://github.com/varadharajaan)*
+
+[Features](#-features) • [Quick Start](#-quick-start) • [Architecture](#️-architecture) • [Documentation](docs/) • [Wiki](../../wiki)
+
+</div>
+
+---
 
 Sentinel Log AI automatically groups similar log patterns, detects novel/unseen errors, and provides LLM-powered explanations with suggested next steps — all running locally on your machine.
 
@@ -520,3 +530,13 @@ MIT License - see [LICENSE](LICENSE) for details.
 - [FAISS](https://github.com/facebookresearch/faiss) for vector search
 - [HDBSCAN](https://hdbscan.readthedocs.io/) for clustering
 - [Ollama](https://ollama.ai/) for local LLM inference
+
+---
+
+<div align="center">
+
+**[⬆ Back to Top](#sentinel-log-ai)**
+
+Made with ❤️ by [Varad](https://github.com/varadharajaan) • [Report Bug](../../issues) • [Request Feature](../../issues)
+
+</div>
