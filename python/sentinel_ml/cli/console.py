@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import io
 import sys
+from collections.abc import Generator, Sequence
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import TYPE_CHECKING, Any, TextIO
@@ -30,11 +31,9 @@ from sentinel_ml.cli.formatters import (
 from sentinel_ml.cli.progress import ProgressTracker, SpinnerContext, SpinnerType
 from sentinel_ml.cli.themes import Theme, get_theme
 from sentinel_ml.logging import get_logger
+from sentinel_ml.models import ClusterSummary, Explanation, LogRecord
 
 if TYPE_CHECKING:
-    from collections.abc import Generator, Sequence
-
-    from sentinel_ml.models import ClusterSummary, Explanation, LogRecord
     from sentinel_ml.novelty import NoveltyScore
 
 logger = get_logger(__name__)
