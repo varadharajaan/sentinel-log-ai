@@ -734,3 +734,265 @@ class TestMLServiceServicerClustering:
             assert len(summary.representative_messages) > 0
             assert len(summary.representative_indices) > 0
             assert summary.size > 0
+
+
+# ============================================================================
+# M4: Novelty Detection Integration Tests
+# ============================================================================
+
+
+class TestServerNoveltyDetection:
+    """Integration tests for novelty detection in the server."""
+
+    @pytest.fixture
+    def config(self) -> Config:
+        """Create a test config."""
+        return Config(server=ServerConfig(host="localhost", port=50051))
+
+    @pytest.fixture
+    def servicer_with_novelty(self, config: Config) -> MLServiceServicer:
+        """Create servicer with mock novelty service."""
+        from sentinel_ml.novelty import NoveltyService
+
+        embedding_service = EmbeddingService.create_mock(embedding_dim=64)
+        vector_store = VectorStore.create_mock(dimension=64)
+        novelty_service = NoveltyService.from_config(
+            config=config.novelty,
+            use_mock=True,
+        )
+
+        return MLServiceServicer(
+            config=config,
+            embedding_service=embedding_service,
+            vector_store=vector_store,
+            novelty_service=novelty_service,
+        )
+
+    @pytest.fixture
+    def servicer_with_knn_novelty(self, config: Config) -> MLServiceServicer:
+        """Create servicer with k-NN novelty service."""
+        from sentinel_ml.novelty import NoveltyService
+
+        embedding_service = EmbeddingService.create_mock(embedding_dim=64)
+        vector_store = VectorStore.create_mock(dimension=64)
+        novelty_service = NoveltyService.from_config(
+            config=config.novelty,
+            use_mock=False,  # Real k-NN detector
+        )
+
+        return MLServiceServicer(
+            config=config,
+            embedding_service=embedding_service,
+            vector_store=vector_store,
+            novelty_service=novelty_service,
+        )
+
+    def test_fit_novelty_detector(self, servicer_with_novelty: MLServiceServicer) -> None:
+        """Test fitting the novelty detector."""
+        embeddings = np.random.randn(50, 64).astype(np.float32)
+
+        servicer_with_novelty.fit_novelty_detector(embeddings)
+
+        assert servicer_with_novelty._novelty_fitted is True
+
+    def test_detect_novelty_basic(self, servicer_with_novelty: MLServiceServicer) -> None:
+        """Test basic novelty detection."""
+        # Fit first
+        reference = np.random.randn(50, 64).astype(np.float32)
+        servicer_with_novelty.fit_novelty_detector(reference)
+
+        # Detect
+        test = np.random.randn(10, 64).astype(np.float32)
+        result = servicer_with_novelty.detect_novelty(test)
+
+        assert len(result.scores) == 10
+        assert result.n_novel + result.n_normal == 10
+        assert result.algorithm == "mock"
+
+    def test_detect_novelty_with_messages(self, servicer_with_novelty: MLServiceServicer) -> None:
+        """Test novelty detection with message context."""
+        reference = np.random.randn(50, 64).astype(np.float32)
+        servicer_with_novelty.fit_novelty_detector(reference)
+
+        test = np.random.randn(5, 64).astype(np.float32)
+        messages = [f"Log message {i}" for i in range(5)]
+
+        result = servicer_with_novelty.detect_novelty(test, messages=messages)
+
+        assert len(result.scores) == 5
+        for novel in result.novel_scores:
+            if novel.index < len(messages):
+                assert novel.message is not None
+
+    def test_detect_novelty_custom_threshold(
+        self, servicer_with_novelty: MLServiceServicer
+    ) -> None:
+        """Test novelty detection with custom threshold."""
+        reference = np.random.randn(50, 64).astype(np.float32)
+        servicer_with_novelty.fit_novelty_detector(reference)
+
+        test = np.random.randn(20, 64).astype(np.float32)
+
+        # High threshold - fewer novels
+        high_result = servicer_with_novelty.detect_novelty(test, threshold=0.95)
+
+        # Low threshold - more novels
+        low_result = servicer_with_novelty.detect_novelty(test, threshold=0.1)
+
+        assert low_result.n_novel >= high_result.n_novel
+
+    def test_ingest_embed_and_detect_novelty(
+        self, servicer_with_novelty: MLServiceServicer
+    ) -> None:
+        """Test full pipeline with novelty detection."""
+        records = [
+            {"message": f"Log message {i}", "raw": f"Log message {i}", "source": "test"}
+            for i in range(10)
+        ]
+
+        processed, embeddings, ids, novelty_result = (
+            servicer_with_novelty.ingest_embed_and_detect_novelty(records, store=True)
+        )
+
+        assert len(processed) == 10
+        assert len(embeddings) == 10
+        assert len(ids) == 10
+        assert novelty_result.n_novel + novelty_result.n_normal == 10
+
+    def test_ingest_embed_and_detect_novelty_with_reference(
+        self, servicer_with_novelty: MLServiceServicer
+    ) -> None:
+        """Test pipeline with explicit reference embeddings."""
+        reference = np.random.randn(30, 64).astype(np.float32)
+        records = [
+            {"message": f"Test log {i}", "raw": f"Test log {i}", "source": "app"} for i in range(5)
+        ]
+
+        processed, _embeddings, _ids, novelty_result = (
+            servicer_with_novelty.ingest_embed_and_detect_novelty(
+                records,
+                reference_embeddings=reference,
+                store=True,
+            )
+        )
+
+        assert len(processed) == 5
+        assert novelty_result is not None
+        assert servicer_with_novelty._novelty_fitted is True
+
+    def test_ingest_embed_and_detect_novelty_empty(
+        self, servicer_with_novelty: MLServiceServicer
+    ) -> None:
+        """Test pipeline with empty input."""
+        processed, embeddings, ids, novelty_result = (
+            servicer_with_novelty.ingest_embed_and_detect_novelty([], store=True)
+        )
+
+        assert len(processed) == 0
+        assert len(embeddings) == 0
+        assert len(ids) == 0
+        assert novelty_result.n_novel == 0
+
+    def test_get_novelty_stats(self, servicer_with_novelty: MLServiceServicer) -> None:
+        """Test getting novelty statistics."""
+        reference = np.random.randn(50, 64).astype(np.float32)
+        servicer_with_novelty.fit_novelty_detector(reference)
+
+        test = np.random.randn(20, 64).astype(np.float32)
+        servicer_with_novelty.detect_novelty(test)
+
+        stats = servicer_with_novelty.get_novelty_stats()
+
+        assert "total_analyzed" in stats
+        assert stats["total_analyzed"] == 20
+        assert "total_novel_detected" in stats
+        assert "total_normal_detected" in stats
+
+    def test_get_novelty_stats_uninitialized(self, config: Config) -> None:
+        """Test getting novelty stats when not initialized."""
+        servicer = MLServiceServicer(config=config)
+
+        stats = servicer.get_novelty_stats()
+
+        assert stats["total_analyzed"] == 0
+        assert stats["total_novel_detected"] == 0
+
+    def test_health_check_with_novelty(self, servicer_with_novelty: MLServiceServicer) -> None:
+        """Test health check includes novelty component."""
+        reference = np.random.randn(30, 64).astype(np.float32)
+        servicer_with_novelty.fit_novelty_detector(reference)
+
+        health = servicer_with_novelty.health_check(detailed=True)
+
+        assert health["healthy"] is True
+        assert "novelty_stats" in health
+
+        novelty_component = next(
+            (c for c in health["components"] if "novelty" in c["name"].lower()),
+            None,
+        )
+        assert novelty_component is not None
+        assert novelty_component["healthy"] is True
+        assert "fitted" in novelty_component["message"].lower()
+
+    def test_health_check_novelty_lazy_load(self, config: Config) -> None:
+        """Test health check shows lazy load for uninitialized novelty."""
+        embedding_service = EmbeddingService.create_mock(embedding_dim=64)
+        vector_store = VectorStore.create_mock(dimension=64)
+
+        servicer = MLServiceServicer(
+            config=config,
+            embedding_service=embedding_service,
+            vector_store=vector_store,
+            # No novelty service - should show lazy load
+        )
+
+        health = servicer.health_check(detailed=True)
+
+        novelty_component = next(
+            (c for c in health["components"] if "novelty" in c["name"].lower()),
+            None,
+        )
+        assert novelty_component is not None
+        assert "lazy load" in novelty_component["message"].lower()
+
+    def test_knn_novelty_detects_outliers(
+        self, servicer_with_knn_novelty: MLServiceServicer
+    ) -> None:
+        """Test that k-NN detector identifies outliers correctly."""
+        # Create clustered reference data
+        np.random.seed(42)
+        cluster = np.random.randn(50, 64).astype(np.float32) * 0.1
+
+        # Fit on normal cluster
+        servicer_with_knn_novelty.fit_novelty_detector(cluster)
+
+        # Test on mix of normal and outliers
+        normal_test = np.random.randn(5, 64).astype(np.float32) * 0.1
+        outliers = np.random.randn(5, 64).astype(np.float32) * 0.1 + 5.0
+        test_data = np.vstack([normal_test, outliers])
+
+        result = servicer_with_knn_novelty.detect_novelty(test_data, threshold=0.5)
+
+        # Outliers should have higher scores on average
+        outlier_indices = set(range(5, 10))
+        novel_indices = set(result.get_novel_indices())
+
+        # At least some outliers should be detected
+        assert len(novel_indices & outlier_indices) > 0
+
+    def test_novelty_result_serialization(self, servicer_with_novelty: MLServiceServicer) -> None:
+        """Test that novelty results can be serialized."""
+        reference = np.random.randn(30, 64).astype(np.float32)
+        servicer_with_novelty.fit_novelty_detector(reference)
+
+        test = np.random.randn(10, 64).astype(np.float32)
+        result = servicer_with_novelty.detect_novelty(test)
+
+        result_dict = result.to_dict()
+
+        assert "batch_id" in result_dict
+        assert "n_samples" in result_dict
+        assert "n_novel" in result_dict
+        assert "novelty_rate" in result_dict
+        assert "score_stats" in result_dict

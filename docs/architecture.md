@@ -144,8 +144,11 @@ graph LR
         CLUSTER[clustering.py]
     end
 
-    subgraph "Future Components"
+    subgraph "M4 Components"
         NOVELTY[novelty.py]
+    end
+
+    subgraph "Future Components"
         LLM[llm.py]
     end
 
@@ -358,6 +361,94 @@ flowchart TD
 2. Compute distance from each member to centroid
 3. Select N closest members as representatives
 4. Extract their messages for summary
+
+## Novelty Detection Architecture (M4)
+
+The novelty detection subsystem identifies unusual log patterns using k-NN density estimation:
+
+```mermaid
+graph TB
+    subgraph "NoveltyService"
+        NS[NoveltyService]
+        STATS[NoveltyStats]
+        THRESHOLD[Threshold Config]
+    end
+
+    subgraph "Detector Strategies"
+        ND[NoveltyDetector ABC]
+        KNN[KNNNoveltyDetector]
+        MOCK[MockNoveltyDetector]
+    end
+
+    subgraph "Output"
+        RESULT[NoveltyResult]
+        SCORES[Novelty Scores]
+        NOVEL[NoveltyScore Objects]
+    end
+
+    NS --> STATS
+    NS --> THRESHOLD
+    NS --> ND
+    ND --> KNN
+    ND --> MOCK
+    NS --> RESULT
+    RESULT --> SCORES
+    RESULT --> NOVEL
+```
+
+### Novelty Detector Strategy Pattern
+
+The novelty system uses the Strategy pattern for algorithm flexibility:
+
+| Algorithm | Use Case |
+|-----------|----------|
+| `KNNNoveltyDetector` | Production - k-NN density-based novelty scoring |
+| `MockNoveltyDetector` | Testing - Deterministic mock scores |
+
+### k-NN Novelty Configuration
+
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| `threshold` | 0.7 | Score threshold for novel classification |
+| `k_neighbors` | 5 | Number of neighbors for density estimation |
+| `use_density` | true | Use density-based vs distance-based scoring |
+
+### Novelty Detection Algorithm
+
+```mermaid
+flowchart TD
+    REF[Reference Embeddings] --> FIT[Fit Detector]
+    FIT --> COMPUTE_REF[Compute Reference Densities]
+    COMPUTE_REF --> STORE_DIST[Store Density Distribution]
+    
+    NEW[New Embeddings] --> SCORE[Score]
+    SCORE --> KNN[Compute k-NN Distances]
+    KNN --> DENSITY[Calculate Local Density]
+    DENSITY --> NORMALIZE[Normalize Against Reference]
+    NORMALIZE --> SIGMOID[Apply Sigmoid Transform]
+    SIGMOID --> CLASSIFY{Score >= Threshold?}
+    CLASSIFY -->|Yes| NOVEL_OUT[Novel]
+    CLASSIFY -->|No| NORMAL_OUT[Normal]
+```
+
+### k-NN Density Scoring
+
+1. **Fit Phase**: Compute k-NN distances for reference embeddings
+2. **Reference Distribution**: Calculate mean and std of densities
+3. **Score Phase**: For new samples, compute k-NN distances to reference
+4. **Density Estimation**: density = 1 / (mean k-NN distance + ε)
+5. **Normalization**: z-score against reference distribution
+6. **Transform**: Sigmoid to map to [0, 1] novelty score
+
+### Novelty Score Interpretation
+
+| Score Range | Interpretation |
+|-------------|----------------|
+| 0.0 - 0.3 | Normal - High density, close to known patterns |
+| 0.3 - 0.5 | Slightly unusual - Moderate deviation |
+| 0.5 - 0.7 | Unusual - Notable deviation from patterns |
+| 0.7 - 0.9 | Novel - Significant anomaly |
+| 0.9 - 1.0 | Highly novel - Extreme outlier |
 
 ## Layer Architecture
 
