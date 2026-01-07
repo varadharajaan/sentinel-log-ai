@@ -12,7 +12,7 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from sentinel_ml.config import Config, EmbeddingConfig, ServerConfig, VectorStoreConfig
+from sentinel_ml.config import Config, ServerConfig
 from sentinel_ml.embedding import EmbeddingService
 from sentinel_ml.models import LogRecord
 from sentinel_ml.preprocessing import PreprocessingService
@@ -167,7 +167,6 @@ class TestM2EmbeddingPipeline:
 
         # First batch - all cache misses
         embedding_service.embed_records(processed)
-        initial_misses = embedding_service.stats.cache_misses
 
         # Second batch - all cache hits
         embedding_service.embed_records(processed)
@@ -326,7 +325,7 @@ class TestM2Persistence:
                 )
                 for i in range(10)
             ]
-            ids = store1.add(embeddings, records=records, ids=[f"log-{i}" for i in range(10)])
+            store1.add(embeddings, records=records, ids=[f"log-{i}" for i in range(10)])
 
             # Save
             store1.save()
@@ -433,7 +432,7 @@ class TestM2EdgeCases:
         records = [
             LogRecord(
                 message=f"Log message number {i} with some content",
-                normalized=f"Log message number <num> with some content",
+                normalized="Log message number <num> with some content",
                 raw=f"INFO Log message number {i} with some content",
                 source="test.log",
             )

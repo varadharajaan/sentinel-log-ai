@@ -531,7 +531,6 @@ class VectorStore:
             config = get_config().vector_store
 
         # Get embedding dimension from config
-        embedding_config = get_config().embedding
         # Default dimension for all-MiniLM-L6-v2
         dimension = 384
 
@@ -638,7 +637,7 @@ class VectorStore:
         index_ids = self.index.add(embeddings)
 
         # Store metadata
-        for i, (external_id, index_id) in enumerate(zip(ids, index_ids)):
+        for i, (external_id, index_id) in enumerate(zip(ids, index_ids, strict=True)):
             record = records[i] if records else None
             metadata = VectorMetadata(
                 id=external_id,
@@ -700,7 +699,7 @@ class VectorStore:
         # For cosine: similarity = 1 - distance^2/2
         results: list[SearchResult] = []
 
-        for dist, idx in zip(distances[0], indices[0]):
+        for dist, idx in zip(distances[0], indices[0], strict=True):
             if idx < 0:  # FAISS uses -1 for no result
                 continue
 

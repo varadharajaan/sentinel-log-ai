@@ -175,6 +175,90 @@ flowchart TD
     RETRIEVE --> VS
 ```
 
+### Embedding Generation (M2)
+
+```mermaid
+flowchart TD
+    BATCH[Log Batch] --> NORM_CHECK{Normalized?}
+    NORM_CHECK -->|Yes| CACHE{In Cache?}
+    NORM_CHECK -->|No| NORM[Normalize Message]
+    NORM --> CACHE
+    CACHE -->|Hit| CACHED[Return Cached Embedding]
+    CACHE -->|Miss| HASH[Generate Hash Key]
+    HASH --> TOKENIZE[Tokenize Messages]
+    TOKENIZE --> MODEL[Sentence Transformer<br/>all-MiniLM-L6-v2]
+    MODEL --> EMB[384-dim Embedding]
+    EMB --> STORE_CACHE[Store in LRU Cache]
+    STORE_CACHE --> RETURN[Return Embedding]
+    CACHED --> RETURN
+```
+
+### Embedding Cache Flow
+
+```mermaid
+sequenceDiagram
+    participant Client as Client
+    participant Service as EmbeddingService
+    participant Cache as LRU Cache
+    participant Provider as SentenceTransformer
+
+    Client->>Service: embed_records(records)
+    loop For each record
+        Service->>Cache: get(hash(normalized))
+        alt Cache Hit
+            Cache-->>Service: cached_embedding
+            Service->>Service: stats.cache_hits++
+        else Cache Miss
+            Service->>Provider: embed(normalized)
+            Provider-->>Service: embedding_vector
+            Service->>Cache: put(hash, embedding)
+            Service->>Service: stats.cache_misses++
+        end
+    end
+    Service-->>Client: embeddings[]
+```
+
+### Vector Store Operations (M2)
+
+```mermaid
+flowchart TD
+    subgraph "Add Flow"
+        EMB[Embeddings] --> NORM2[L2 Normalize]
+        NORM2 --> INDEX[Add to FAISS Index]
+        INDEX --> META[Store Metadata]
+        META --> ID[Return IDs]
+    end
+
+    subgraph "Search Flow"
+        QUERY[Query Vector] --> NORM3[L2 Normalize]
+        NORM3 --> SEARCH[FAISS Search]
+        SEARCH --> DIST[Distances + Indices]
+        DIST --> LOOKUP[Lookup Metadata]
+        LOOKUP --> RESULTS[SearchResult[]]
+    end
+```
+
+### Vector Store Persistence
+
+```mermaid
+sequenceDiagram
+    participant Store as VectorStore
+    participant FAISS as FAISS Index
+    participant FS as File System
+
+    Note over Store,FS: Save Operation
+    Store->>FAISS: write_index(index)
+    FAISS->>FS: vectors.faiss
+    Store->>FS: metadata.json
+    Store->>FS: config.json
+
+    Note over Store,FS: Load Operation
+    FS->>FAISS: read_index(path)
+    FAISS->>Store: index
+    FS->>Store: metadata.json
+    FS->>Store: config.json
+```
+
 ### Clustering Pipeline
 
 ```mermaid

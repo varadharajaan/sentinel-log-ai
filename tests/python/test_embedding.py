@@ -8,7 +8,6 @@ Tests cover:
 - Integration with log records
 """
 
-import hashlib
 from datetime import datetime, timezone
 
 import numpy as np

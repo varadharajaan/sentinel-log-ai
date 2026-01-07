@@ -16,9 +16,9 @@ from pathlib import Path
 import numpy as np
 import pytest
 
+from sentinel_ml.exceptions import StorageError
 from sentinel_ml.models import LogRecord
 from sentinel_ml.vectorstore import (
-    IndexStrategy,
     MockVectorIndex,
     SearchResult,
     VectorMetadata,
@@ -325,7 +325,7 @@ class TestVectorStore:
             LogRecord(message="msg", source="src", raw="raw"),
         ]
 
-        with pytest.raises(Exception):  # StorageError
+        with pytest.raises(StorageError):
             mock_store.add(embeddings, records=records)
 
     def test_search_basic(self, mock_store: VectorStore) -> None:
@@ -391,7 +391,8 @@ class TestVectorStore:
     def test_get_by_id(self, mock_store: VectorStore) -> None:
         """Test getting metadata by ID."""
         embeddings = np.random.randn(1, 64).astype(np.float32)
-        ids = mock_store.add(embeddings, ids=["test-id"])
+        returned_ids = mock_store.add(embeddings, ids=["test-id"])
+        assert returned_ids == ["test-id"]
 
         metadata = mock_store.get_by_id("test-id")
 
@@ -467,7 +468,8 @@ class TestVectorStore:
                 )
                 for i in range(5)
             ]
-            ids = store1.add(embeddings, records=records, ids=[f"id-{i}" for i in range(5)])
+            returned_ids = store1.add(embeddings, records=records, ids=[f"id-{i}" for i in range(5)])
+            assert len(returned_ids) == 5
 
             # Save
             store1.save()
