@@ -217,7 +217,7 @@ class SlackNotifier(BaseNotifier):
 
         try:
             with urlopen(request, timeout=self._slack_config.timeout_seconds) as response:
-                return response.read().decode("utf-8")
+                return str(response.read().decode("utf-8"))
         except HTTPError as e:
             self._logger.error(
                 "slack_http_error",

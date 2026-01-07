@@ -271,13 +271,13 @@ class GitHubIssueCreator(BaseNotifier):
             response = self._api_request(
                 "GET",
                 url,
-                params={"q": query, "per_page": 1},
+                params={"q": query, "per_page": "1"},
             )
 
             if response.get("total_count", 0) > 0:
                 items = response.get("items", [])
                 if items:
-                    return items[0]
+                    return dict(items[0])
 
         except HTTPError as e:
             if e.code != 404:
@@ -332,7 +332,8 @@ class GitHubIssueCreator(BaseNotifier):
         try:
             with urlopen(request, timeout=self._github_config.timeout_seconds) as response:
                 body = response.read().decode("utf-8")
-                return json.loads(body)
+                result: dict[str, Any] = json.loads(body)
+                return result
         except HTTPError as e:
             self._logger.error(
                 "github_api_error",

@@ -102,7 +102,7 @@ class MemoryProfiler:
             try:
                 import resource
 
-                usage = resource.getrusage(resource.RUSAGE_SELF)
+                usage = resource.getrusage(resource.RUSAGE_SELF)  # type: ignore[attr-defined]
                 rss = usage.ru_maxrss * 1024
                 return rss, 0
             except ImportError:

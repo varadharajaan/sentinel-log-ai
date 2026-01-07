@@ -304,6 +304,7 @@ class EmailNotifier(BaseNotifier):
 
         context = ssl.create_default_context() if (config.use_tls or config.use_ssl) else None
 
+        server: smtplib.SMTP | smtplib.SMTP_SSL
         try:
             if config.use_ssl:
                 server = smtplib.SMTP_SSL(
@@ -365,6 +366,7 @@ class EmailNotifier(BaseNotifier):
         if not super().health_check():
             return False
 
+        server: smtplib.SMTP | smtplib.SMTP_SSL
         try:
             config = self._email_config
             if config.use_ssl:
