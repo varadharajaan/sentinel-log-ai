@@ -216,7 +216,8 @@ class TestAgeCriteria:
         criteria = AgeCriteria(max_age_days=30)
         age = criteria.get_age_days(test_file)
 
-        assert age >= 0
+        # Allow small negative values due to clock precision on fast systems
+        assert age >= -1e-6
         assert age < 1  # Just created
 
     def test_get_description(self) -> None:
