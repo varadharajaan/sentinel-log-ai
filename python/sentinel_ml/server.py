@@ -467,6 +467,152 @@ class MLServiceServicer:
 
         return processed, embeddings, ids, clustering_result
 
+    def fit_novelty_detector(
+        self,
+        embeddings: np.ndarray,
+        records: list[LogRecord] | None = None,
+    ) -> None:
+        """
+        Fit the novelty detector on reference embeddings.
+
+        This establishes the baseline of "normal" log patterns.
+        Subsequent calls to detect_novelty will compare against this baseline.
+
+        Args:
+            embeddings: Reference embeddings representing normal patterns.
+            records: Optional log records for context.
+        """
+        novelty_service = self._ensure_novelty_service()
+
+        novelty_service.fit(embeddings, records=records)
+        self._novelty_fitted = True
+
+        logger.info(
+            "novelty_detector_fitted",
+            n_reference_samples=len(embeddings),
+            embedding_dim=embeddings.shape[1] if embeddings.size > 0 else 0,
+        )
+
+    def detect_novelty(
+        self,
+        embeddings: np.ndarray,
+        records: list[LogRecord] | None = None,
+        messages: list[str] | None = None,
+        threshold: float | None = None,
+    ) -> NoveltyResult:
+        """
+        Detect novel log patterns in embeddings.
+
+        Must call fit_novelty_detector first to establish baseline.
+
+        Args:
+            embeddings: Embedding vectors to analyze.
+            records: Optional log records for metadata extraction.
+            messages: Optional message list for context.
+            threshold: Override default novelty threshold.
+
+        Returns:
+            NoveltyResult with scores and novel sample details.
+        """
+        novelty_service = self._ensure_novelty_service()
+
+        result = novelty_service.detect(
+            embeddings=embeddings,
+            records=records,
+            messages=messages,
+            threshold=threshold,
+        )
+
+        with self._lock:
+            self._metrics.record_request(True, len(embeddings))
+
+        logger.info(
+            "novelty_detection_completed",
+            n_samples=len(embeddings),
+            n_novel=result.n_novel,
+            n_normal=result.n_normal,
+            novelty_rate=round(result.n_novel / len(embeddings), 4)
+            if len(embeddings) > 0
+            else 0.0,
+            threshold=result.threshold,
+        )
+
+        return result
+
+    def ingest_embed_and_detect_novelty(
+        self,
+        records: list[dict[str, Any]],
+        reference_embeddings: np.ndarray | None = None,
+        store: bool = True,
+        use_cache: bool = True,
+        threshold: float | None = None,
+    ) -> tuple[list[LogRecord], np.ndarray, list[str], NoveltyResult]:
+        """
+        Full pipeline: preprocess, embed, store, and detect novelty.
+
+        If reference_embeddings is not provided, uses the vector store
+        contents as reference (requires store to have data).
+
+        Args:
+            records: Raw log record dictionaries.
+            reference_embeddings: Optional baseline embeddings for novelty.
+            store: Whether to add to vector store.
+            use_cache: Whether to use embedding cache.
+            threshold: Override default novelty threshold.
+
+        Returns:
+            Tuple of (processed records, embeddings, vector IDs, novelty result).
+        """
+        # Use existing ingest_and_embed
+        processed, embeddings, ids = self.ingest_and_embed(
+            records=records,
+            store=store,
+            use_cache=use_cache,
+        )
+
+        if len(processed) == 0:
+            return (
+                [],
+                np.array([]),
+                [],
+                NoveltyResult(
+                    scores=np.array([], dtype=np.float32),
+                    is_novel=np.array([], dtype=np.bool_),
+                    novel_scores=[],
+                    n_novel=0,
+                    n_normal=0,
+                    threshold=threshold or self.config.novelty.threshold,
+                    detection_time_seconds=0.0,
+                    algorithm="knn_density",
+                    parameters={},
+                ),
+            )
+
+        # Fit novelty detector if reference provided and not fitted
+        self._ensure_novelty_service()
+        if reference_embeddings is not None and not self._novelty_fitted:
+            self.fit_novelty_detector(reference_embeddings)
+        elif not self._novelty_fitted:
+            # Use first batch as reference
+            self.fit_novelty_detector(embeddings)
+
+        # Detect novelty
+        novelty_result = self.detect_novelty(
+            embeddings,
+            records=processed,
+            threshold=threshold,
+        )
+
+        logger.info(
+            "ingest_embed_and_detect_novelty_completed",
+            input_count=len(records),
+            processed_count=len(processed),
+            n_novel=novelty_result.n_novel,
+            stored=store,
+        )
+
+        return processed, embeddings, ids, novelty_result
+
     def get_embedding_stats(self) -> dict[str, Any]:
         """Get embedding service statistics."""
         if not self._embedding_initialized or self._embedding_service is None:
@@ -484,6 +630,12 @@ class MLServiceServicer:
         if not self._clustering_initialized or self._clustering_service is None:
             return ClusterStats().to_dict()
         return self._clustering_service.stats.to_dict()
+
+    def get_novelty_stats(self) -> dict[str, Any]:
+        """Get novelty detection service statistics."""
+        if not self._novelty_initialized or self._novelty_service is None:
+            return NoveltyStats().to_dict()
+        return self._novelty_service.stats.to_dict()
 
     def health_check(self, detailed: bool = False) -> dict[str, Any]:
         """
@@ -562,6 +714,26 @@ class MLServiceServicer:
                 )
             )
 
+        # Check novelty detection service
+        if self._novelty_initialized and self._novelty_service is not None:
+            stats = self._novelty_service.stats
+            fitted_msg = "fitted" if self._novelty_fitted else "not fitted"
+            components.append(
+                ComponentHealth(
+                    name="novelty_service",
+                    healthy=True,
+                    message=f"Ready ({fitted_msg}, {stats.total_analyzed} analyzed)",
+                )
+            )
+        else:
+            components.append(
+                ComponentHealth(
+                    name="novelty_service",
+                    healthy=True,  # Not loaded is OK - lazy initialization
+                    message="Ready (lazy load)",
+                )
+            )
+
         result: dict[str, Any] = {
             "healthy": overall_healthy,
             "version": self.VERSION,
@@ -575,6 +747,7 @@ class MLServiceServicer:
             result["embedding_stats"] = self.get_embedding_stats()
             result["vector_store_stats"] = self.get_vector_store_stats()
             result["clustering_stats"] = self.get_clustering_stats()
+            result["novelty_stats"] = self.get_novelty_stats()
 
         return result
 

@@ -122,6 +122,32 @@ HDBSCAN clustering discovers log patterns automatically:
 - **ClusterSummary**: Rich metadata with representative samples, common levels, time ranges
 - **Strategy Pattern**: Pluggable clustering algorithms (HDBSCAN, K-Means, DBSCAN)
 
+### Novelty Detection (M4)
+
+k-NN density-based novelty detection identifies unusual log patterns:
+
+```
+┌─────────────┐     ┌──────────────┐     ┌───────────────┐     ┌────────────┐
+│ Reference   │────►│ k-NN Density │────►│ Baseline      │     │            │
+│ Embeddings  │     │ Computation  │     │ Distribution  │     │            │
+└─────────────┘     └──────────────┘     └───────────────┘     │            │
+                                                ▼               │  Novelty   │
+┌─────────────┐     ┌──────────────┐     ┌───────────────┐     │  Scores    │
+│ New         │────►│ Cross k-NN   │────►│ Density       │────►│  (0-1)     │
+│ Embeddings  │     │ Distances    │     │ Scoring       │     │            │
+└─────────────┘     └──────────────┘     └───────────────┘     └────────────┘
+                           │                     │                    │
+                    • Distance to ref      • Z-score norm      • Threshold
+                    • k neighbors          • Sigmoid transform   classification
+                    • Efficient search     • [0,1] range       • Explanations
+```
+
+**Key Components:**
+- **NoveltyService**: High-level API for novelty detection operations
+- **KNNNoveltyDetector**: k-nearest neighbors density-based scoring
+- **NoveltyScore**: Per-sample scores with explanations
+- **Strategy Pattern**: Pluggable detection algorithms (k-NN, LOF, Isolation Forest)
+
 ## 📦 Installation
 
 ### Prerequisites
@@ -396,7 +422,7 @@ sentinel-log-ai/
 - [x] **M1**: Ingestion & preprocessing pipeline
 - [x] **M2**: Embeddings & FAISS vector store
 - [x] **M3**: HDBSCAN clustering & pattern summaries
-- [ ] **M4**: Novelty detection
+- [x] **M4**: Novelty detection (k-NN density-based)
 - [ ] **M5**: LLM explanation with confidence
 - [ ] **M6**: CLI polish & rich output
 - [ ] **M7**: Performance benchmarks & docs

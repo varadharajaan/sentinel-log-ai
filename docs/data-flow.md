@@ -318,18 +318,116 @@ flowchart LR
     TOP --> REPS[Representatives]
 ```
 
-### Novelty Detection
+### Novelty Detection Pipeline (M4)
 
 ```mermaid
 flowchart TD
-    NEW[New Log] --> EMB[Embedding]
-    EMB --> KNN[k-NN Search]
-    KNN --> DIST[Distance Calculation]
-    DIST --> DENS[Density Estimation]
-    DENS --> SCORE{Score > Threshold?}
-    SCORE -->|Yes| NOVEL[Mark as Novel]
-    SCORE -->|No| KNOWN[Mark as Known]
-    NOVEL --> ALERT[Generate Alert]
+    subgraph "Fit Phase"
+        REF[Reference Embeddings] --> FIT_KNN[Compute k-NN Distances]
+        FIT_KNN --> REF_DENS[Calculate Reference Densities]
+        REF_DENS --> DIST_STATS[Store Mean/Std of Distribution]
+    end
+
+    subgraph "Detection Phase"
+        NEW[New Embeddings] --> CROSS_KNN[Cross k-NN to Reference]
+        CROSS_KNN --> NEW_DENS[Calculate New Densities]
+        NEW_DENS --> Z_SCORE[Compute Z-Scores]
+        Z_SCORE --> SIGMOID[Apply Sigmoid Transform]
+        SIGMOID --> SCORES[Novelty Scores 0-1]
+    end
+
+    subgraph "Classification"
+        SCORES --> THRESHOLD{Score >= Threshold?}
+        THRESHOLD -->|Yes| NOVEL[Mark as Novel]
+        THRESHOLD -->|No| NORMAL[Mark as Normal]
+        NOVEL --> EXPLAIN[Generate Explanation]
+        EXPLAIN --> ALERT[Novel Log Alert]
+    end
+```
+
+### Novelty Detection Sequence
+
+```mermaid
+sequenceDiagram
+    participant Client as Server/Client
+    participant Service as NoveltyService
+    participant Detector as KNNNoveltyDetector
+    participant Stats as NoveltyStats
+
+    Note over Client,Stats: Fit Phase (establish baseline)
+    Client->>Service: fit(reference_embeddings)
+    Service->>Detector: fit(embeddings)
+    Detector->>Detector: compute_knn_distances()
+    Detector->>Detector: calculate_density_distribution()
+    Detector-->>Service: fitted
+
+    Note over Client,Stats: Detection Phase
+    Client->>Service: detect(new_embeddings, threshold)
+    Service->>Detector: score(embeddings)
+    Detector->>Detector: compute_cross_knn_distances()
+    Detector->>Detector: calculate_densities()
+    Detector->>Detector: normalize_and_transform()
+    Detector-->>Service: scores[]
+    
+    Service->>Service: classify_by_threshold()
+    Service->>Service: build_novel_scores()
+    Service->>Stats: update(n_analyzed, n_novel)
+    Service-->>Client: NoveltyResult
+```
+
+### k-NN Density Calculation
+
+```mermaid
+flowchart TD
+    EMB[Embedding Vector] --> DIST[Compute Pairwise Distances]
+    DIST --> PART[Partition k Smallest]
+    PART --> KNN_D[k-NN Distances]
+    KNN_D --> MEAN[Mean Distance]
+    MEAN --> INV[Density = 1 / Mean + ε]
+    INV --> DENS[Local Density Estimate]
+```
+
+### Novelty Score Interpretation Flow
+
+```mermaid
+flowchart LR
+    SCORE[Novelty Score] --> RANGE{Score Range}
+    RANGE -->|0.0-0.3| NORMAL[Normal Pattern]
+    RANGE -->|0.3-0.5| SLIGHT[Slight Deviation]
+    RANGE -->|0.5-0.7| UNUSUAL[Unusual]
+    RANGE -->|0.7-0.9| NOVEL[Novel - Alert]
+    RANGE -->|0.9-1.0| EXTREME[Highly Novel - Critical]
+```
+
+### Full Pipeline: Ingest, Embed, and Detect
+
+```mermaid
+sequenceDiagram
+    participant Client
+    participant Server as MLServiceServicer
+    participant Preproc as Preprocessing
+    participant Embed as EmbeddingService
+    participant Store as VectorStore
+    participant Novelty as NoveltyService
+
+    Client->>Server: ingest_embed_and_detect_novelty(records)
+    Server->>Preproc: preprocess_batch(records)
+    Preproc-->>Server: processed_records
+    
+    Server->>Embed: embed_records(processed)
+    Embed-->>Server: embeddings
+    
+    Server->>Store: add(embeddings, records)
+    Store-->>Server: ids
+    
+    alt Not Fitted
+        Server->>Novelty: fit(reference_embeddings)
+    end
+    
+    Server->>Novelty: detect(embeddings)
+    Novelty-->>Server: NoveltyResult
+    
+    Server-->>Client: (processed, embeddings, ids, novelty_result)
 ```
 
 ## Phase 5: LLM Explanation

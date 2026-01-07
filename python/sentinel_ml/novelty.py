@@ -417,7 +417,7 @@ class KNNNoveltyDetector(NoveltyDetector):
                 max_score=round(float(np.max(scores)), 4),
             )
 
-            return scores
+            return np.asarray(scores, dtype=np.float32)
 
         except Exception as e:
             logger.error(
@@ -463,7 +463,7 @@ class KNNNoveltyDetector(NoveltyDetector):
         knn_sq_distances = np.take_along_axis(sq_distances, indices, axis=1)
 
         # Return actual distances (not squared)
-        return np.sqrt(knn_sq_distances).astype(np.float32)
+        return np.asarray(np.sqrt(knn_sq_distances), dtype=np.float32)
 
     def _compute_cross_knn_distances(
         self,
@@ -498,7 +498,7 @@ class KNNNoveltyDetector(NoveltyDetector):
         indices = np.argpartition(sq_distances, k_neighbors - 1, axis=1)[:, :k_neighbors]
         knn_sq_distances = np.take_along_axis(sq_distances, indices, axis=1)
 
-        return np.sqrt(knn_sq_distances).astype(np.float32)
+        return np.asarray(np.sqrt(knn_sq_distances), dtype=np.float32)
 
     def get_parameters(self) -> dict[str, Any]:
         """Return algorithm parameters."""
@@ -585,7 +585,7 @@ class MockNoveltyDetector(NoveltyDetector):
         else:
             scores = np.full(len(norms), 0.5)
 
-        return scores.astype(np.float32)
+        return np.asarray(scores, dtype=np.float32)
 
     def get_parameters(self) -> dict[str, Any]:
         """Return algorithm parameters."""
@@ -663,7 +663,7 @@ class NoveltyService:
     def fit(
         self,
         embeddings: EmbeddingArray,
-        records: Sequence[LogRecord] | None = None,
+        records: Sequence[LogRecord] | None = None,  # noqa: ARG002
     ) -> None:
         """
         Fit the novelty detector on reference embeddings.
