@@ -149,7 +149,9 @@ class NoveltyResult:
             "n_samples": len(self.scores),
             "n_novel": self.n_novel,
             "n_normal": self.n_normal,
-            "novelty_rate": round(self.n_novel / len(self.scores), 4) if len(self.scores) > 0 else 0.0,
+            "novelty_rate": round(self.n_novel / len(self.scores), 4)
+            if len(self.scores) > 0
+            else 0.0,
             "threshold": self.threshold,
             "detection_time_seconds": round(self.detection_time_seconds, 3),
             "algorithm": self.algorithm,
@@ -430,9 +432,7 @@ class KNNNoveltyDetector(NoveltyDetector):
                 context={"n_samples": embeddings.shape[0], "error": str(e)},
             ) from e
 
-    def _compute_knn_distances(
-        self, embeddings: EmbeddingArray, k: int
-    ) -> NDArray[np.float32]:
+    def _compute_knn_distances(self, embeddings: EmbeddingArray, k: int) -> NDArray[np.float32]:
         """
         Compute k-NN distances within a set of embeddings.
 
@@ -508,9 +508,7 @@ class KNNNoveltyDetector(NoveltyDetector):
             "distance_metric": self._distance_metric,
             "is_fitted": self._fitted,
             "n_reference_samples": (
-                self._reference_embeddings.shape[0]
-                if self._reference_embeddings is not None
-                else 0
+                self._reference_embeddings.shape[0] if self._reference_embeddings is not None else 0
             ),
         }
 
@@ -900,9 +898,8 @@ class NoveltyService:
 
         if total_after > 0:
             self.stats.avg_novelty_score = (
-                (self.stats.avg_novelty_score * total_before + float(np.sum(scores)))
-                / total_after
-            )
+                self.stats.avg_novelty_score * total_before + float(np.sum(scores))
+            ) / total_after
 
         self.stats.total_analyzed = total_after
         self.stats.total_novel_detected += n_novel

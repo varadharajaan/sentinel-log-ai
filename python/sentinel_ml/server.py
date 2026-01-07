@@ -531,9 +531,7 @@ class MLServiceServicer:
             n_samples=len(embeddings),
             n_novel=result.n_novel,
             n_normal=result.n_normal,
-            novelty_rate=round(result.n_novel / len(embeddings), 4)
-            if len(embeddings) > 0
-            else 0.0,
+            novelty_rate=round(result.n_novel / len(embeddings), 4) if len(embeddings) > 0 else 0.0,
             threshold=result.threshold,
         )
 
@@ -716,13 +714,13 @@ class MLServiceServicer:
 
         # Check novelty detection service
         if self._novelty_initialized and self._novelty_service is not None:
-            stats = self._novelty_service.stats
+            novelty_stats = self._novelty_service.stats
             fitted_msg = "fitted" if self._novelty_fitted else "not fitted"
             components.append(
                 ComponentHealth(
                     name="novelty_service",
                     healthy=True,
-                    message=f"Ready ({fitted_msg}, {stats.total_analyzed} analyzed)",
+                    message=f"Ready ({fitted_msg}, {novelty_stats.total_analyzed} analyzed)",
                 )
             )
         else:

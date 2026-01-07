@@ -459,9 +459,7 @@ class TestKNNNoveltyDetector:
 
         assert len(scores) == 0
 
-    def test_score_outliers_higher(
-        self, clustered_embeddings: NDArray[np.float32]
-    ) -> None:
+    def test_score_outliers_higher(self, clustered_embeddings: NDArray[np.float32]) -> None:
         """Test that outliers receive higher novelty scores."""
         detector = KNNNoveltyDetector(k_neighbors=5, use_density=True)
 
@@ -499,9 +497,7 @@ class TestKNNNoveltyDetector:
         assert params["is_fitted"] is False
         assert params["n_reference_samples"] == 0
 
-    def test_get_parameters_after_fit(
-        self, sample_embeddings: NDArray[np.float32]
-    ) -> None:
+    def test_get_parameters_after_fit(self, sample_embeddings: NDArray[np.float32]) -> None:
         """Test parameters after fitting."""
         detector = KNNNoveltyDetector(k_neighbors=5)
         detector.fit(sample_embeddings)
@@ -511,9 +507,7 @@ class TestKNNNoveltyDetector:
         assert params["is_fitted"] is True
         assert params["n_reference_samples"] == 100
 
-    def test_use_density_false(
-        self, sample_embeddings: NDArray[np.float32]
-    ) -> None:
+    def test_use_density_false(self, sample_embeddings: NDArray[np.float32]) -> None:
         """Test detector with density disabled."""
         detector = KNNNoveltyDetector(k_neighbors=5, use_density=False)
         detector.fit(sample_embeddings[:80])
@@ -557,9 +551,7 @@ class TestMockNoveltyDetector:
         assert len(scores) == 100
         assert all(0 <= s <= 1 for s in scores)
 
-    def test_score_deterministic(
-        self, sample_embeddings: NDArray[np.float32]
-    ) -> None:
+    def test_score_deterministic(self, sample_embeddings: NDArray[np.float32]) -> None:
         """Test that mock scores are deterministic."""
         detector = MockNoveltyDetector()
         detector.fit(sample_embeddings)
@@ -758,9 +750,7 @@ class TestNoveltyService:
         assert len(scores) == 20
         assert all(0 <= s <= 1 for s in scores)
 
-    def test_score_batch_not_fitted(
-        self, novelty_config: NoveltyConfig
-    ) -> None:
+    def test_score_batch_not_fitted(self, novelty_config: NoveltyConfig) -> None:
         """Test batch scoring without fitting."""
         service = NoveltyService.from_config(config=novelty_config)
         embeddings = np.random.randn(10, 64).astype(np.float32)
@@ -932,9 +922,7 @@ class TestNoveltyEdgeCases:
 class TestNoveltyIntegration:
     """Integration tests for novelty detection pipeline."""
 
-    def test_full_pipeline_with_outliers(
-        self, clustered_embeddings: NDArray[np.float32]
-    ) -> None:
+    def test_full_pipeline_with_outliers(self, clustered_embeddings: NDArray[np.float32]) -> None:
         """Test full pipeline correctly identifies outliers."""
         service = NoveltyService.from_config(
             config=NoveltyConfig(
@@ -958,9 +946,7 @@ class TestNoveltyIntegration:
         outlier_indices_detected = [i for i in novel_indices if i >= 90]
         assert len(outlier_indices_detected) > 0
 
-    def test_pipeline_with_messages(
-        self, sample_embeddings: NDArray[np.float32]
-    ) -> None:
+    def test_pipeline_with_messages(self, sample_embeddings: NDArray[np.float32]) -> None:
         """Test pipeline with message context."""
         messages = [f"Log message {i}" for i in range(20)]
 
@@ -973,9 +959,7 @@ class TestNoveltyIntegration:
         assert isinstance(result, NoveltyResult)
         assert result.batch_id is not None
 
-    def test_serialization_roundtrip(
-        self, sample_embeddings: NDArray[np.float32]
-    ) -> None:
+    def test_serialization_roundtrip(self, sample_embeddings: NDArray[np.float32]) -> None:
         """Test that results can be serialized and contain expected data."""
         service = NoveltyService.from_config(use_mock=True)
         service.fit(sample_embeddings)

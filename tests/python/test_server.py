@@ -787,9 +787,7 @@ class TestServerNoveltyDetection:
             novelty_service=novelty_service,
         )
 
-    def test_fit_novelty_detector(
-        self, servicer_with_novelty: MLServiceServicer
-    ) -> None:
+    def test_fit_novelty_detector(self, servicer_with_novelty: MLServiceServicer) -> None:
         """Test fitting the novelty detector."""
         embeddings = np.random.randn(50, 64).astype(np.float32)
 
@@ -797,9 +795,7 @@ class TestServerNoveltyDetection:
 
         assert servicer_with_novelty._novelty_fitted is True
 
-    def test_detect_novelty_basic(
-        self, servicer_with_novelty: MLServiceServicer
-    ) -> None:
+    def test_detect_novelty_basic(self, servicer_with_novelty: MLServiceServicer) -> None:
         """Test basic novelty detection."""
         # Fit first
         reference = np.random.randn(50, 64).astype(np.float32)
@@ -813,9 +809,7 @@ class TestServerNoveltyDetection:
         assert result.n_novel + result.n_normal == 10
         assert result.algorithm == "mock"
 
-    def test_detect_novelty_with_messages(
-        self, servicer_with_novelty: MLServiceServicer
-    ) -> None:
+    def test_detect_novelty_with_messages(self, servicer_with_novelty: MLServiceServicer) -> None:
         """Test novelty detection with message context."""
         reference = np.random.randn(50, 64).astype(np.float32)
         servicer_with_novelty.fit_novelty_detector(reference)
@@ -857,9 +851,7 @@ class TestServerNoveltyDetection:
         ]
 
         processed, embeddings, ids, novelty_result = (
-            servicer_with_novelty.ingest_embed_and_detect_novelty(
-                records, store=True
-            )
+            servicer_with_novelty.ingest_embed_and_detect_novelty(records, store=True)
         )
 
         assert len(processed) == 10
@@ -873,8 +865,7 @@ class TestServerNoveltyDetection:
         """Test pipeline with explicit reference embeddings."""
         reference = np.random.randn(30, 64).astype(np.float32)
         records = [
-            {"message": f"Test log {i}", "raw": f"Test log {i}", "source": "app"}
-            for i in range(5)
+            {"message": f"Test log {i}", "raw": f"Test log {i}", "source": "app"} for i in range(5)
         ]
 
         processed, _embeddings, _ids, novelty_result = (
@@ -902,9 +893,7 @@ class TestServerNoveltyDetection:
         assert len(ids) == 0
         assert novelty_result.n_novel == 0
 
-    def test_get_novelty_stats(
-        self, servicer_with_novelty: MLServiceServicer
-    ) -> None:
+    def test_get_novelty_stats(self, servicer_with_novelty: MLServiceServicer) -> None:
         """Test getting novelty statistics."""
         reference = np.random.randn(50, 64).astype(np.float32)
         servicer_with_novelty.fit_novelty_detector(reference)
@@ -928,9 +917,7 @@ class TestServerNoveltyDetection:
         assert stats["total_analyzed"] == 0
         assert stats["total_novel_detected"] == 0
 
-    def test_health_check_with_novelty(
-        self, servicer_with_novelty: MLServiceServicer
-    ) -> None:
+    def test_health_check_with_novelty(self, servicer_with_novelty: MLServiceServicer) -> None:
         """Test health check includes novelty component."""
         reference = np.random.randn(30, 64).astype(np.float32)
         servicer_with_novelty.fit_novelty_detector(reference)
@@ -994,9 +981,7 @@ class TestServerNoveltyDetection:
         # At least some outliers should be detected
         assert len(novel_indices & outlier_indices) > 0
 
-    def test_novelty_result_serialization(
-        self, servicer_with_novelty: MLServiceServicer
-    ) -> None:
+    def test_novelty_result_serialization(self, servicer_with_novelty: MLServiceServicer) -> None:
         """Test that novelty results can be serialized."""
         reference = np.random.randn(30, 64).astype(np.float32)
         servicer_with_novelty.fit_novelty_detector(reference)
