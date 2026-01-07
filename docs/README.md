@@ -14,6 +14,8 @@ This directory contains technical documentation for the Sentinel Log AI system.
 | [Error Handling](error-handling.md) | Error codes, exception hierarchy, and recovery strategies |
 | [Logging](logging.md) | JSONL logging format, Athena integration, and observability |
 | [Configuration](configuration.md) | Configuration options and environment variables |
+| [Troubleshooting](troubleshooting.md) | Common issues, solutions, and debugging tips |
+| [Demo](demo.md) | Demo dataset generation and step-by-step walkthrough |
 
 ## Quick Links
 

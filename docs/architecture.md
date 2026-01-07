@@ -929,6 +929,120 @@ graph TB
 | Clustering | HDBSCAN | Log pattern clustering |
 | LLM | Ollama/OpenAI | Log explanation generation |
 
+## Benchmark Framework
+
+The benchmark framework provides tools for performance testing, memory profiling, and scale testing.
+
+### Benchmark Architecture
+
+```mermaid
+graph TB
+    subgraph "Benchmark Module"
+        RUNNER[BenchmarkRunner]
+        SUITE[BenchmarkSuite]
+        FUNC[FunctionBenchmark]
+    end
+
+    subgraph "Metrics Collection"
+        TIMING[TimingMetrics]
+        THROUGHPUT[ThroughputMetrics]
+        MEMORY[MemoryTracker]
+        COLLECTOR[MetricsCollector]
+    end
+
+    subgraph "Memory Profiling"
+        PROFILER[MemoryProfiler]
+        SNAPSHOT[MemorySnapshot]
+    end
+
+    subgraph "Dataset Generation"
+        DATASET_GEN[DatasetGenerator]
+        DATASET_CFG[DatasetConfig]
+    end
+
+    SUITE --> RUNNER
+    FUNC --> RUNNER
+    RUNNER --> COLLECTOR
+    COLLECTOR --> TIMING
+    COLLECTOR --> THROUGHPUT
+    COLLECTOR --> MEMORY
+    RUNNER --> PROFILER
+    PROFILER --> SNAPSHOT
+    RUNNER --> DATASET_GEN
+    DATASET_GEN --> DATASET_CFG
+```
+
+### Benchmark Execution Flow
+
+```mermaid
+sequenceDiagram
+    participant Suite as BenchmarkSuite
+    participant Runner as BenchmarkRunner
+    participant Metrics as MetricsCollector
+    participant Profiler as MemoryProfiler
+
+    Suite->>Runner: execute()
+    Runner->>Runner: setup()
+    Runner->>Profiler: set_baseline()
+    
+    loop Warmup Iterations
+        Runner->>Runner: run_iteration()
+    end
+
+    loop Measured Iterations
+        Runner->>Metrics: time_operation()
+        Runner->>Runner: run_iteration()
+        Runner->>Profiler: snapshot()
+    end
+
+    Runner->>Runner: teardown()
+    Runner->>Metrics: collect_metrics()
+    Runner-->>Suite: BenchmarkResult
+```
+
+### Dataset Scale Testing
+
+```mermaid
+graph LR
+    subgraph "Scale Configurations"
+        SMALL[Small: 1K logs]
+        MEDIUM[Medium: 10K logs]
+        LARGE[Large: 100K logs]
+        XLARGE[XLarge: 1M logs]
+    end
+
+    subgraph "Log Patterns"
+        HTTP[HTTP Request]
+        DB[Database Query]
+        AUTH[Auth Event]
+        ERROR[Error Stack]
+        METRIC[Metric Log]
+    end
+
+    SMALL --> HTTP
+    MEDIUM --> DB
+    LARGE --> AUTH
+    XLARGE --> ERROR
+```
+
+### Memory Profiling
+
+| Component | Purpose |
+|-----------|---------|
+| `MemoryProfiler` | Track memory usage over time |
+| `MemorySnapshot` | Point-in-time memory measurement |
+| `MemoryTracker` | Observer pattern for memory changes |
+| `profile_memory` | Context manager for profiling |
+| `memory_profile` | Decorator for function profiling |
+
+### Metrics Collection
+
+| Metric Type | Collected Data |
+|-------------|----------------|
+| `TimingMetrics` | mean, median, p50, p95, p99, std_dev |
+| `ThroughputMetrics` | items/sec, MB/sec, total bytes |
+| `MemoryTracker` | RSS, VMS, peak, growth, GC stats |
+
 ## Security Considerations
 
 1. **Data Masking**: PII/sensitive data masked during normalization
