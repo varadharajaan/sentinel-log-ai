@@ -13,7 +13,7 @@ Commands:
 from __future__ import annotations
 
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 import yaml
 
@@ -21,16 +21,13 @@ from sentinel_ml.config import (
     ClusteringConfig,
     Config,
     EmbeddingConfig,
-    LoggingConfig,
     LLMConfig,
+    LoggingConfig,
     NoveltyConfig,
     ServerConfig,
     VectorStoreConfig,
 )
 from sentinel_ml.logging import get_logger
-
-if TYPE_CHECKING:
-    pass
 
 logger = get_logger(__name__)
 
@@ -48,13 +45,13 @@ server:
   # gRPC server host and port
   host: "0.0.0.0"
   port: 50051
-  
+
   # Maximum concurrent workers
   max_workers: 10
-  
+
   # Request timeout in seconds
   timeout: 30.0
-  
+
   # Enable reflection for grpcurl/debugging
   reflection: true
 
@@ -64,13 +61,13 @@ server:
 logging:
   # Log level: DEBUG, INFO, WARNING, ERROR
   level: "INFO"
-  
+
   # Output format: json, text
   format: "json"
-  
+
   # Log file path (optional, logs to stderr if not set)
   # file: "logs/sentinel-ml.jsonl"
-  
+
   # Enable structured logging
   structured: true
 
@@ -81,20 +78,20 @@ embedding:
   # Model name (sentence-transformers model)
   # Options: all-MiniLM-L6-v2, all-mpnet-base-v2, paraphrase-MiniLM-L6-v2
   model_name: "all-MiniLM-L6-v2"
-  
+
   # Embedding dimension (must match model)
   dimension: 384
-  
+
   # Batch size for embedding generation
   batch_size: 32
-  
+
   # Enable caching for repeated embeddings
   cache_enabled: true
   cache_size: 10000
-  
+
   # Device: cpu, cuda, mps (auto-detected if not set)
   # device: "cpu"
-  
+
   # Use mock embeddings (for testing)
   use_mock: false
 
@@ -107,25 +104,25 @@ vector_store:
   # - ivf: Inverted file index, good balance
   # - hnsw: Hierarchical NSW, fast approximate search
   index_type: "flat"
-  
+
   # Embedding dimension (must match embedding.dimension)
   dimension: 384
-  
+
   # Metric: cosine, l2, inner_product
   metric: "cosine"
-  
+
   # IVF-specific settings
   ivf_nlist: 100
   ivf_nprobe: 10
-  
+
   # HNSW-specific settings
   hnsw_m: 32
   hnsw_ef_construction: 200
   hnsw_ef_search: 64
-  
+
   # Persistence path (optional)
   # persist_path: "data/vector_store"
-  
+
   # Use mock store (for testing)
   use_mock: false
 
@@ -135,22 +132,22 @@ vector_store:
 clustering:
   # Algorithm: hdbscan, kmeans, dbscan
   algorithm: "hdbscan"
-  
+
   # HDBSCAN parameters
   min_cluster_size: 5
   min_samples: 3
   cluster_selection_epsilon: 0.0
   cluster_selection_method: "eom"  # eom or leaf
-  
+
   # K-Means parameters (if algorithm: kmeans)
   n_clusters: 10
-  
+
   # DBSCAN parameters (if algorithm: dbscan)
   eps: 0.5
-  
+
   # Metric for distance calculation
   metric: "euclidean"
-  
+
   # Use mock clustering (for testing)
   use_mock: false
 
@@ -160,23 +157,23 @@ clustering:
 novelty:
   # Algorithm: knn, lof, isolation_forest
   algorithm: "knn"
-  
+
   # Number of neighbors for k-NN
   k_neighbors: 5
-  
+
   # Threshold for novelty classification (0.0 - 1.0)
   novelty_threshold: 0.7
-  
+
   # Minimum samples to fit detector
   min_samples_fit: 10
-  
+
   # LOF-specific (if algorithm: lof)
   lof_contamination: 0.1
-  
+
   # Isolation Forest (if algorithm: isolation_forest)
   if_n_estimators: 100
   if_contamination: 0.1
-  
+
   # Use mock detector (for testing)
   use_mock: false
 
@@ -186,22 +183,22 @@ novelty:
 llm:
   # Provider: ollama, openai, mock
   provider: "ollama"
-  
+
   # Model name
   model: "llama3.2"
-  
+
   # Base URL for Ollama
   base_url: "http://localhost:11434"
-  
+
   # Request timeout in seconds
   timeout: 120
-  
+
   # Maximum retries on failure
   max_retries: 3
-  
+
   # Temperature for generation (0.0 - 1.0)
   temperature: 0.1
-  
+
   # Use mock LLM (for testing)
   use_mock: false
 
@@ -211,19 +208,19 @@ llm:
 cli:
   # Theme: dark, light, minimal, colorblind, none
   theme: "dark"
-  
+
   # Output format: text, json, table
   output_format: "text"
-  
+
   # Enable colors (auto-detected if terminal supports)
   colors: true
-  
+
   # Maximum output width
   max_width: 120
-  
+
   # Show timestamps in output
   timestamps: true
-  
+
   # Verbose output
   verbose: false
 
@@ -233,10 +230,10 @@ cli:
 profile:
   # Enable profiling
   enabled: false
-  
+
   # Minimum duration to report (ms)
   threshold_ms: 1.0
-  
+
   # Output file (optional)
   # output_file: "profile.json"
 """
@@ -485,17 +482,17 @@ def show_config(config: Config) -> str:
     # Embedding
     sections.append("\nEmbedding:")
     sections.append(f"  model: {config.embedding.model_name}")
-    sections.append(f"  dimension: {config.embedding.dimension}")
+    sections.append(f"  batch_size: {config.embedding.batch_size}")
 
     # Clustering
     sections.append("\nClustering:")
-    sections.append(f"  algorithm: {config.clustering.algorithm}")
     sections.append(f"  min_cluster_size: {config.clustering.min_cluster_size}")
+    sections.append(f"  metric: {config.clustering.metric}")
 
     # Novelty
     sections.append("\nNovelty:")
-    sections.append(f"  algorithm: {config.novelty.algorithm}")
-    sections.append(f"  threshold: {config.novelty.novelty_threshold}")
+    sections.append(f"  threshold: {config.novelty.threshold}")
+    sections.append(f"  k_neighbors: {config.novelty.k_neighbors}")
 
     # LLM
     sections.append("\nLLM:")

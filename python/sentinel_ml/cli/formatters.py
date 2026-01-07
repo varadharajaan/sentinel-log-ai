@@ -12,7 +12,6 @@ from __future__ import annotations
 import json
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from datetime import datetime
 from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
 
 from sentinel_ml.cli.themes import (
@@ -25,6 +24,8 @@ from sentinel_ml.cli.themes import (
 from sentinel_ml.logging import get_logger
 
 if TYPE_CHECKING:
+    from datetime import datetime
+
     from sentinel_ml.models import ClusterSummary, Explanation, LogRecord
     from sentinel_ml.novelty import NoveltyScore
 
@@ -167,8 +168,7 @@ class JSONFormatter(Formatter):
             data = data.model_dump()
         elif isinstance(data, list):
             data = [
-                item.model_dump() if isinstance(item, FormattableRecord) else item
-                for item in data
+                item.model_dump() if isinstance(item, FormattableRecord) else item for item in data
             ]
 
         return json.dumps(
@@ -270,7 +270,9 @@ class TableFormatter(Formatter):
         header_parts = []
         for col in table_data.columns:
             width = col_widths.get(col.key, 10)
-            header_text = col.header.ljust(width) if col.align == "left" else col.header.rjust(width)
+            header_text = (
+                col.header.ljust(width) if col.align == "left" else col.header.rjust(width)
+            )
             header_color = self.theme.header if self.options.colors else ""
             header_parts.append(self._colorize(header_text, header_color))
         lines.append("  ".join(header_parts))
@@ -393,11 +395,17 @@ class ClusterFormatter(Formatter):
 
         # Cluster header with severity color
         severity_color = get_severity_color(
-            "HIGH" if cluster.novelty_score > 0.7 else "MEDIUM" if cluster.novelty_score > 0.3 else "LOW",
+            "HIGH"
+            if cluster.novelty_score > 0.7
+            else "MEDIUM"
+            if cluster.novelty_score > 0.3
+            else "LOW",
             self.theme,
         )
 
-        cluster_id_display = cluster.cluster_id[:12] if len(cluster.cluster_id) > 12 else cluster.cluster_id
+        cluster_id_display = (
+            cluster.cluster_id[:12] if len(cluster.cluster_id) > 12 else cluster.cluster_id
+        )
         header_line = f"┌─ Cluster {cluster_id_display}"
         if cluster.is_new:
             header_line += " " + self._colorize("[NEW]", self.theme.warning)
@@ -410,8 +418,7 @@ class ClusterFormatter(Formatter):
 
         novelty_color = get_novelty_color(cluster.novelty_score, self.theme)
         lines.append(
-            f"│ {size_text}  │  {cohesion_text}  │  "
-            + self._colorize(novelty_text, novelty_color)
+            f"│ {size_text}  │  {cohesion_text}  │  " + self._colorize(novelty_text, novelty_color)
         )
 
         # Representative sample
@@ -494,9 +501,7 @@ class NoveltyFormatter(Formatter):
         else:
             status = self._colorize("✓ known", self.theme.success)
 
-        lines.append(
-            f"  {bar} {self._colorize(f'{score.score:.3f}', score_color)}  {status}"
-        )
+        lines.append(f"  {bar} {self._colorize(f'{score.score:.3f}', score_color)}  {status}")
 
         # Explanation if available
         if score.explanation:

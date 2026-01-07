@@ -328,9 +328,7 @@ class MarkdownReporter(Reporter):
             )
 
         if len(clusters) > self.config.max_clusters:
-            lines.append(
-                f"\n*... and {len(clusters) - self.config.max_clusters} more clusters*"
-            )
+            lines.append(f"\n*... and {len(clusters) - self.config.max_clusters} more clusters*")
 
         lines.append("")
 
@@ -348,7 +346,7 @@ class MarkdownReporter(Reporter):
                 lines.append("- **Status**: 🆕 New cluster")
             lines.append("")
             lines.append("**Representative Log:**")
-            lines.append(f"```")
+            lines.append("```")
             lines.append(cluster.representative[:200])
             lines.append("```")
             lines.append("")
@@ -597,8 +595,8 @@ class HTMLReporter(Reporter):
             cards.append(
                 f"""<div class="cluster-card">
                     <h4>Cluster {html.escape(cluster.cluster_id[:12])} {new_badge}</h4>
-                    <p><strong>Size:</strong> {cluster.size} logs | 
-                       <strong>Cohesion:</strong> {cluster.cohesion:.3f} | 
+                    <p><strong>Size:</strong> {cluster.size} logs |
+                       <strong>Cohesion:</strong> {cluster.cohesion:.3f} |
                        <strong>Novelty:</strong> {cluster.novelty_score:.3f}</p>
                     <p><strong>Representative:</strong></p>
                     <pre>{html.escape(cluster.representative[:200])}</pre>
@@ -667,7 +665,9 @@ class HTMLReporter(Reporter):
             badge_class = (
                 "badge-high"
                 if severity in ("HIGH", "CRITICAL")
-                else "badge-medium" if severity == "MEDIUM" else "badge-low"
+                else "badge-medium"
+                if severity == "MEDIUM"
+                else "badge-low"
             )
 
             actions = getattr(explanation, "suggested_actions", [])
@@ -681,7 +681,7 @@ class HTMLReporter(Reporter):
                     <h4>Cluster {html.escape(explanation.cluster_id[:12])}</h4>
                     <p>
                         <span class="badge {badge_class}">{severity}</span>
-                        <strong>Confidence:</strong> {getattr(explanation, 'confidence', 'MEDIUM')}
+                        <strong>Confidence:</strong> {getattr(explanation, "confidence", "MEDIUM")}
                     </p>
                     <p><strong>Root Cause:</strong></p>
                     <blockquote>{html.escape(explanation.root_cause)}</blockquote>
@@ -702,7 +702,9 @@ class HTMLReporter(Reporter):
         rows = []
         for key, value in stats.items():
             formatted_key = key.replace("_", " ").title()
-            rows.append(f"<tr><td>{html.escape(formatted_key)}</td><td>{html.escape(str(value))}</td></tr>")
+            rows.append(
+                f"<tr><td>{html.escape(formatted_key)}</td><td>{html.escape(str(value))}</td></tr>"
+            )
 
         return f"""
     <section id="stats">

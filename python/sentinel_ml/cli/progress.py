@@ -9,7 +9,6 @@ Design Pattern: Observer Pattern for progress updates.
 
 from __future__ import annotations
 
-import contextlib
 import sys
 import time
 from contextlib import contextmanager
@@ -225,10 +224,7 @@ class ProgressTracker:
 
     def _render_start(self, task: TaskProgress) -> None:
         """Render task start."""
-        if task.total > 0:
-            line = f"⏳ {task.name} [0/{task.total}]"
-        else:
-            line = f"⏳ {task.name}..."
+        line = f"⏳ {task.name} [0/{task.total}]" if task.total > 0 else f"⏳ {task.name}..."
 
         if task.status:
             line += f" - {task.status}"

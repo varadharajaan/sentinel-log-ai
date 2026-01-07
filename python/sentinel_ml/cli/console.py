@@ -28,7 +28,7 @@ from sentinel_ml.cli.formatters import (
     TableFormatter,
 )
 from sentinel_ml.cli.progress import ProgressTracker, SpinnerContext, SpinnerType
-from sentinel_ml.cli.themes import Theme, ThemeColors, get_theme
+from sentinel_ml.cli.themes import Theme, get_theme
 from sentinel_ml.logging import get_logger
 
 if TYPE_CHECKING:
@@ -220,7 +220,7 @@ class Console:
         """Print an info message."""
         if self.config.quiet:
             return
-        icon = "ℹ" if self.config.colors else "[INFO]"
+        icon = "i" if self.config.colors else "[INFO]"
         formatted = f"{self._colorize(icon, self._theme_colors.info)} {message}"
         self.print(formatted)
 
@@ -309,7 +309,9 @@ class Console:
             all_keys = set()
             for row in rows:
                 all_keys.update(row.keys())
-            columns = [TableColumn(key=k, header=k.replace("_", " ").title()) for k in sorted(all_keys)]
+            columns = [
+                TableColumn(key=k, header=k.replace("_", " ").title()) for k in sorted(all_keys)
+            ]
 
         formatter = TableFormatter(
             theme=self._theme_colors,
@@ -324,7 +326,7 @@ class Console:
         self,
         clusters: ClusterSummary | Sequence[ClusterSummary],
         *,
-        format: OutputFormat | None = None,  # noqa: A002
+        format: OutputFormat | None = None,
     ) -> None:
         """
         Print cluster summaries.
@@ -349,7 +351,7 @@ class Console:
         self,
         scores: NoveltyScore | Sequence[NoveltyScore],
         *,
-        format: OutputFormat | None = None,  # noqa: A002
+        format: OutputFormat | None = None,
     ) -> None:
         """
         Print novelty scores.
@@ -361,10 +363,7 @@ class Console:
         output_format = format or self.config.format
 
         if output_format == OutputFormat.JSON:
-            if isinstance(scores, list):
-                data = [s.to_dict() for s in scores]
-            else:
-                data = scores.to_dict()
+            data = [s.to_dict() for s in scores] if isinstance(scores, list) else scores.to_dict()
             self.print_json(data)
         else:
             formatted = self._novelty_formatter.format(scores)  # type: ignore[arg-type]
@@ -374,7 +373,7 @@ class Console:
         self,
         explanation: Explanation | Sequence[Explanation],
         *,
-        format: OutputFormat | None = None,  # noqa: A002
+        format: OutputFormat | None = None,
     ) -> None:
         """
         Print LLM explanation.
@@ -399,7 +398,7 @@ class Console:
         self,
         records: LogRecord | Sequence[LogRecord],
         *,
-        format: OutputFormat | None = None,  # noqa: A002
+        format: OutputFormat | None = None,
     ) -> None:
         """
         Print log records.
@@ -528,10 +527,7 @@ class Console:
         Returns:
             User input or default.
         """
-        if default:
-            prompt = f"{message} [{default}]: "
-        else:
-            prompt = f"{message}: "
+        prompt = f"{message} [{default}]: " if default else f"{message}: "
 
         try:
             response = input(prompt).strip()
