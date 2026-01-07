@@ -140,8 +140,11 @@ graph LR
         VS[vectorstore.py]
     end
 
-    subgraph "Future Components"
+    subgraph "M3 Components"
         CLUSTER[clustering.py]
+    end
+
+    subgraph "Future Components"
         NOVELTY[novelty.py]
         LLM[llm.py]
     end
@@ -150,16 +153,20 @@ graph LR
     CONFIG --> SERVER
     CONFIG --> EMB
     CONFIG --> VS
+    CONFIG --> CLUSTER
     MODELS --> PARSER
     MODELS --> EMB
     MODELS --> VS
+    MODELS --> CLUSTER
     NORM --> PARSER
     NORM --> PRE
     EXC --> SERVER
     EXC --> EMB
     EXC --> VS
+    EXC --> CLUSTER
     EMB --> SERVER
     VS --> SERVER
+    CLUSTER --> SERVER
 ```
 
 ## Embedding Architecture (M2)
@@ -273,6 +280,84 @@ flowchart TD
     LOAD --> META_FILE
     LOAD --> VS2[Restored VectorStore]
 ```
+
+## Clustering Architecture (M3)
+
+The clustering subsystem discovers patterns in log data using HDBSCAN:
+
+```mermaid
+graph TB
+    subgraph "ClusteringService"
+        CS[ClusteringService]
+        STATS[ClusterStats]
+        SUMMARIES[ClusterSummary List]
+    end
+
+    subgraph "Algorithm Strategies"
+        CA[ClusteringAlgorithm ABC]
+        HDBSCAN[HDBSCANAlgorithm]
+        MOCK[MockClusteringAlgorithm]
+    end
+
+    subgraph "Output"
+        RESULT[ClusteringResult]
+        LABELS[Cluster Labels]
+        REPS[Representative Samples]
+    end
+
+    CS --> STATS
+    CS --> CA
+    CA --> HDBSCAN
+    CA --> MOCK
+    CS --> RESULT
+    RESULT --> LABELS
+    RESULT --> SUMMARIES
+    SUMMARIES --> REPS
+```
+
+### Clustering Algorithm Strategy Pattern
+
+The clustering system uses the Strategy pattern for algorithm flexibility:
+
+| Algorithm | Use Case |
+|-----------|----------|
+| `HDBSCANAlgorithm` | Production - Density-based clustering, handles noise |
+| `MockClusteringAlgorithm` | Testing - Deterministic mock clustering |
+
+### HDBSCAN Configuration
+
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| `min_cluster_size` | 5 | Minimum cluster size |
+| `min_samples` | 3 | Core point threshold |
+| `cluster_selection_epsilon` | 0.0 | Merge clusters within epsilon |
+| `metric` | euclidean | Distance metric |
+
+### Cluster Summary Generation
+
+```mermaid
+flowchart TD
+    EMB[Embeddings + Records] --> CLUSTER[HDBSCAN Clustering]
+    CLUSTER --> LABELS[Cluster Labels]
+    LABELS --> FILTER[Filter Non-Noise]
+    FILTER --> CENTROID[Calculate Centroids]
+    CENTROID --> REPS[Select Representatives]
+    REPS --> META[Extract Metadata]
+    META --> SUMMARY[ClusterSummary]
+    
+    subgraph "Metadata Extraction"
+        META --> LEVEL[Common Log Level]
+        META --> SOURCE[Common Source]
+        META --> TIME[Time Range]
+    end
+```
+
+### Representative Selection Algorithm
+
+1. Calculate cluster centroid from member embeddings
+2. Compute distance from each member to centroid
+3. Select N closest members as representatives
+4. Extract their messages for summary
 
 ## Layer Architecture
 

@@ -27,6 +27,7 @@ from typing import TYPE_CHECKING, Any
 import grpc
 import numpy as np
 
+from sentinel_ml.clustering import ClusteringResult, ClusteringService, ClusterStats
 from sentinel_ml.config import Config, get_config
 from sentinel_ml.embedding import EmbeddingService, EmbeddingStats
 from sentinel_ml.logging import get_logger, setup_logging
@@ -92,17 +93,18 @@ class MLServiceServicer:
     Implementation of the ML gRPC service.
 
     This class handles all ML-related requests from the Go agent.
-    Implements preprocessing, embedding, and vector search (M2).
-    Clustering, novelty detection, and LLM will be added in subsequent milestones.
+    Implements preprocessing, embedding, vector search (M2), and clustering (M3).
+    Novelty detection and LLM will be added in subsequent milestones.
     """
 
-    VERSION = "0.2.0"
+    VERSION = "0.3.0"
 
     def __init__(
         self,
         config: Config,
         embedding_service: EmbeddingService | None = None,
         vector_store: VectorStore | None = None,
+        clustering_service: ClusteringService | None = None,
     ) -> None:
         """
         Initialize the servicer.
@@ -111,6 +113,7 @@ class MLServiceServicer:
             config: Server configuration.
             embedding_service: Optional embedding service (for testing).
             vector_store: Optional vector store (for testing).
+            clustering_service: Optional clustering service (for testing).
         """
         self.config = config
         self._preprocessing = PreprocessingService()
@@ -125,8 +128,11 @@ class MLServiceServicer:
         self._vector_store = vector_store
         self._vector_store_initialized = vector_store is not None
 
+        # Clustering service (lazy loaded if not provided)
+        self._clustering_service = clustering_service
+        self._clustering_initialized = clustering_service is not None
+
         # Future components
-        self._clusterer = None
         self._llm_client = None
 
         logger.info(
@@ -134,6 +140,7 @@ class MLServiceServicer:
             version=self.VERSION,
             embedding_initialized=self._embedding_initialized,
             vector_store_initialized=self._vector_store_initialized,
+            clustering_initialized=self._clustering_initialized,
         )
 
     def _ensure_embedding_service(self) -> EmbeddingService:
@@ -153,6 +160,18 @@ class MLServiceServicer:
             self._vector_store_initialized = True
         assert self._vector_store is not None
         return self._vector_store
+
+    def _ensure_clustering_service(self) -> ClusteringService:
+        """Lazy initialize clustering service."""
+        if not self._clustering_initialized:
+            logger.info("initializing_clustering_service")
+            self._clustering_service = ClusteringService.from_config(
+                config=self.config.clustering,
+                use_mock=False,
+            )
+            self._clustering_initialized = True
+        assert self._clustering_service is not None
+        return self._clustering_service
 
     def preprocess_records(
         self,
@@ -328,6 +347,104 @@ class MLServiceServicer:
 
         return processed, embeddings, ids
 
+    def cluster_logs(
+        self,
+        embeddings: np.ndarray,
+        records: list[LogRecord] | None = None,
+        messages: list[str] | None = None,
+    ) -> ClusteringResult:
+        """
+        Cluster log embeddings using HDBSCAN.
+
+        Args:
+            embeddings: Embedding vectors to cluster.
+            records: Optional log records for metadata extraction.
+            messages: Optional message list for representative selection.
+
+        Returns:
+            ClusteringResult with labels, summaries, and statistics.
+        """
+        clustering_service = self._ensure_clustering_service()
+
+        result = clustering_service.cluster(
+            embeddings=embeddings,
+            records=records,
+            messages=messages,
+        )
+
+        with self._lock:
+            self._metrics.record_request(True, len(embeddings))
+
+        logger.info(
+            "logs_clustered",
+            n_samples=len(embeddings),
+            n_clusters=result.n_clusters,
+            n_noise=result.n_noise,
+            clustering_time_seconds=result.clustering_time_seconds,
+        )
+
+        return result
+
+    def ingest_embed_and_cluster(
+        self,
+        records: list[dict[str, Any]],
+        store: bool = True,
+        use_cache: bool = True,
+    ) -> tuple[list[LogRecord], np.ndarray, list[str], ClusteringResult]:
+        """
+        Full pipeline: preprocess, embed, store, and cluster.
+
+        Args:
+            records: Raw log record dictionaries.
+            store: Whether to add to vector store.
+            use_cache: Whether to use embedding cache.
+
+        Returns:
+            Tuple of (processed records, embeddings, vector IDs, clustering result).
+        """
+        # Use existing ingest_and_embed
+        processed, embeddings, ids = self.ingest_and_embed(
+            records=records,
+            store=store,
+            use_cache=use_cache,
+        )
+
+        if len(processed) == 0:
+            return (
+                [],
+                np.array([]),
+                [],
+                ClusteringResult(
+                    labels=np.array([], dtype=np.int32),
+                    n_clusters=0,
+                    n_noise=0,
+                    summaries=[],
+                    algorithm="hdbscan",
+                    parameters={},
+                    clustering_time_seconds=0.0,
+                ),
+            )
+
+        # Cluster
+        clustering_result = self.cluster_logs(embeddings, records=processed)
+
+        # Update vector store with cluster IDs
+        vector_store = self._ensure_vector_store()
+        for idx, record_id in enumerate(ids):
+            cluster_label = int(clustering_result.labels[idx])
+            if cluster_label >= 0:
+                vector_store.update_cluster_id(record_id, str(cluster_label))
+
+        logger.info(
+            "ingest_embed_and_cluster_completed",
+            input_count=len(records),
+            processed_count=len(processed),
+            n_clusters=clustering_result.n_clusters,
+            stored=store,
+        )
+
+        return processed, embeddings, ids, clustering_result
+
     def get_embedding_stats(self) -> dict[str, Any]:
         """Get embedding service statistics."""
         if not self._embedding_initialized or self._embedding_service is None:
@@ -339,6 +456,12 @@ class MLServiceServicer:
         if not self._vector_store_initialized or self._vector_store is None:
             return VectorStoreStats().to_dict()
         return self._vector_store.stats.to_dict()
+
+    def get_clustering_stats(self) -> dict[str, Any]:
+        """Get clustering service statistics."""
+        if not self._clustering_initialized or self._clustering_service is None:
+            return ClusterStats().to_dict()
+        return self._clustering_service.stats.to_dict()
 
     def health_check(self, detailed: bool = False) -> dict[str, Any]:
         """
@@ -398,6 +521,25 @@ class MLServiceServicer:
                 )
             )
 
+        # Check clustering service
+        if self._clustering_initialized and self._clustering_service is not None:
+            stats = self._clustering_service.stats
+            components.append(
+                ComponentHealth(
+                    name="clustering_service",
+                    healthy=True,
+                    message=f"Ready ({stats.n_clusters_found} clusters found)",
+                )
+            )
+        else:
+            components.append(
+                ComponentHealth(
+                    name="clustering_service",
+                    healthy=True,  # Not loaded is OK - lazy initialization
+                    message="Ready (lazy load)",
+                )
+            )
+
         result: dict[str, Any] = {
             "healthy": overall_healthy,
             "version": self.VERSION,
@@ -410,6 +552,7 @@ class MLServiceServicer:
             result["metrics"] = self._metrics.to_dict()
             result["embedding_stats"] = self.get_embedding_stats()
             result["vector_store_stats"] = self.get_vector_store_stats()
+            result["clustering_stats"] = self.get_clustering_stats()
 
         return result
 

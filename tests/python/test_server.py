@@ -554,3 +554,183 @@ class TestMLServiceServicerEmbedding:
         )
         assert vector_component is not None
         assert "10 vectors" in vector_component["message"]
+
+
+class TestMLServiceServicerClustering:
+    """Tests for MLServiceServicer clustering integration."""
+
+    @pytest.fixture
+    def servicer_with_clustering(self) -> MLServiceServicer:
+        """Create servicer with mock embedding, vector store, and clustering."""
+        from sentinel_ml.clustering import ClusteringService
+
+        config = Config(server=ServerConfig(host="localhost", port=50051))
+        embedding_service = EmbeddingService.create_mock(embedding_dim=64)
+        vector_store = VectorStore.create_mock(dimension=64)
+        clustering_service = ClusteringService.from_config(config.clustering, use_mock=True)
+
+        return MLServiceServicer(
+            config=config,
+            embedding_service=embedding_service,
+            vector_store=vector_store,
+            clustering_service=clustering_service,
+        )
+
+    def test_cluster_logs_basic(self, servicer_with_clustering: MLServiceServicer) -> None:
+        """Test basic clustering of embeddings."""
+        embeddings = np.random.randn(50, 64).astype(np.float32)
+
+        result = servicer_with_clustering.cluster_logs(embeddings)
+
+        assert result is not None
+        assert len(result.labels) == 50
+        assert result.n_clusters >= 0
+
+    def test_cluster_logs_with_records(self, servicer_with_clustering: MLServiceServicer) -> None:
+        """Test clustering with log records."""
+        from datetime import datetime, timezone
+
+        from sentinel_ml.models import LogRecord
+
+        embeddings = np.random.randn(30, 64).astype(np.float32)
+        records = [
+            LogRecord(
+                message=f"Log message {i}",
+                normalized="Log message <num>",
+                level="INFO" if i % 2 == 0 else "ERROR",
+                source="test.log",
+                raw=f"[INFO] Log message {i}",
+                timestamp=datetime.now(timezone.utc),
+            )
+            for i in range(30)
+        ]
+
+        result = servicer_with_clustering.cluster_logs(embeddings, records=records)
+
+        assert result is not None
+        assert len(result.summaries) >= 0
+        # At least some summaries should have common level
+        if result.summaries:
+            assert any(s.common_level is not None for s in result.summaries)
+
+    def test_cluster_logs_updates_metrics(
+        self, servicer_with_clustering: MLServiceServicer
+    ) -> None:
+        """Test that clustering updates server metrics."""
+        initial_requests = servicer_with_clustering._metrics.requests_total
+        embeddings = np.random.randn(20, 64).astype(np.float32)
+
+        servicer_with_clustering.cluster_logs(embeddings)
+
+        assert servicer_with_clustering._metrics.requests_total > initial_requests
+
+    def test_ingest_embed_and_cluster_pipeline(
+        self, servicer_with_clustering: MLServiceServicer
+    ) -> None:
+        """Test full pipeline with clustering."""
+        records = [
+            {"message": f"Error in module A: {i}", "level": "ERROR", "source": "app.log"}
+            for i in range(25)
+        ]
+
+        processed, embeddings, ids, clustering_result = (
+            servicer_with_clustering.ingest_embed_and_cluster(records, store=True)
+        )
+
+        assert len(processed) == 25
+        assert len(embeddings) == 25
+        assert len(ids) == 25
+        assert clustering_result is not None
+        assert len(clustering_result.labels) == 25
+
+    def test_ingest_embed_and_cluster_empty(
+        self, servicer_with_clustering: MLServiceServicer
+    ) -> None:
+        """Test pipeline with empty input."""
+        processed, embeddings, ids, clustering_result = (
+            servicer_with_clustering.ingest_embed_and_cluster([], store=True)
+        )
+
+        assert len(processed) == 0
+        assert len(embeddings) == 0
+        assert len(ids) == 0
+        assert clustering_result.n_clusters == 0
+
+    def test_get_clustering_stats(self, servicer_with_clustering: MLServiceServicer) -> None:
+        """Test getting clustering statistics."""
+        # Do some clustering
+        embeddings = np.random.randn(30, 64).astype(np.float32)
+        servicer_with_clustering.cluster_logs(embeddings)
+
+        stats = servicer_with_clustering.get_clustering_stats()
+
+        assert "total_clustered" in stats
+        assert stats["total_clustered"] == 30
+        assert "n_clusters_found" in stats
+
+    def test_get_clustering_stats_uninitialized(self) -> None:
+        """Test getting clustering stats when not initialized."""
+        config = Config(server=ServerConfig(host="localhost", port=50051))
+        servicer = MLServiceServicer(config=config)
+
+        stats = servicer.get_clustering_stats()
+
+        assert stats["total_clustered"] == 0
+        assert stats["n_clusters_found"] == 0
+
+    def test_health_check_with_clustering(
+        self, servicer_with_clustering: MLServiceServicer
+    ) -> None:
+        """Test health check includes clustering component."""
+        # Do some clustering first
+        embeddings = np.random.randn(20, 64).astype(np.float32)
+        servicer_with_clustering.cluster_logs(embeddings)
+
+        health = servicer_with_clustering.health_check(detailed=True)
+
+        assert health["healthy"] is True
+        assert "clustering_stats" in health
+
+        # Find clustering component
+        clustering_component = next(
+            (c for c in health["components"] if "clustering" in c["name"].lower()),
+            None,
+        )
+        assert clustering_component is not None
+        assert clustering_component["healthy"] is True
+
+    def test_health_check_clustering_lazy_load(self) -> None:
+        """Test health check shows lazy load for uninitialized clustering."""
+        config = Config(server=ServerConfig(host="localhost", port=50051))
+        embedding_service = EmbeddingService.create_mock(embedding_dim=64)
+        vector_store = VectorStore.create_mock(dimension=64)
+
+        servicer = MLServiceServicer(
+            config=config,
+            embedding_service=embedding_service,
+            vector_store=vector_store,
+            # No clustering service - should show lazy load
+        )
+
+        health = servicer.health_check(detailed=True)
+
+        clustering_component = next(
+            (c for c in health["components"] if "clustering" in c["name"].lower()),
+            None,
+        )
+        assert clustering_component is not None
+        assert "lazy load" in clustering_component["message"].lower()
+
+    def test_cluster_summaries_have_representatives(
+        self, servicer_with_clustering: MLServiceServicer
+    ) -> None:
+        """Test that cluster summaries include representative samples."""
+        embeddings = np.random.randn(40, 64).astype(np.float32)
+        messages = [f"Message {i}" for i in range(40)]
+
+        result = servicer_with_clustering.cluster_logs(embeddings, messages=messages)
+
+        for summary in result.summaries:
+            assert len(summary.representative_messages) > 0
+            assert len(summary.representative_indices) > 0
+            assert summary.size > 0

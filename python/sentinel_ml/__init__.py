@@ -9,8 +9,9 @@ This package provides the AI/ML capabilities for log analysis:
 - LLM-powered explanations via Ollama
 """
 
-__version__ = "0.1.0"
+__version__ = "0.3.0"
 __all__ = [
+    "clustering",
     "config",
     "embedding",
     "exceptions",

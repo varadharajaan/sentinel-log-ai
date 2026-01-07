@@ -259,16 +259,63 @@ sequenceDiagram
     FS->>Store: config.json
 ```
 
-### Clustering Pipeline
+### Clustering Pipeline (M3)
 
 ```mermaid
 flowchart TD
-    VS[Vector Store] --> QUERY[Query Similar]
-    QUERY --> HDBSCAN[HDBSCAN Clustering]
+    EMB[Embeddings Array] --> VALID{Valid Input?}
+    VALID -->|Empty| EMPTY_RESULT[Empty Result]
+    VALID -->|Valid| HDBSCAN[HDBSCAN Clustering]
     HDBSCAN --> LABELS[Cluster Labels]
-    LABELS --> SUMM[Generate Summaries]
-    SUMM --> REP[Representative Logs]
-    REP --> OUT[Cluster Output]
+    LABELS --> FILTER[Filter Noise -1]
+    FILTER --> UNIQUE[Unique Clusters]
+    UNIQUE --> GEN[Generate Summaries]
+    
+    subgraph "Summary Generation"
+        GEN --> CENT[Calculate Centroid]
+        CENT --> DIST[Distance to Centroid]
+        DIST --> TOP_N[Select N Closest]
+        TOP_N --> MSGS[Extract Messages]
+        MSGS --> META[Extract Metadata]
+        META --> SUMM[ClusterSummary]
+    end
+    
+    SUMM --> RESULT[ClusteringResult]
+```
+
+### Clustering Service Sequence
+
+```mermaid
+sequenceDiagram
+    participant Client as Server/Client
+    participant Service as ClusteringService
+    participant Algo as HDBSCANAlgorithm
+    participant Stats as ClusterStats
+
+    Client->>Service: cluster(embeddings, records)
+    Service->>Algo: fit_predict(embeddings)
+    Algo-->>Service: labels[]
+    
+    loop For each unique cluster label
+        Service->>Service: extract_cluster_members()
+        Service->>Service: calculate_centroid()
+        Service->>Service: select_representatives()
+        Service->>Service: extract_metadata()
+    end
+    
+    Service->>Stats: update(n_clustered, n_clusters)
+    Service-->>Client: ClusteringResult
+```
+
+### Representative Selection Algorithm
+
+```mermaid
+flowchart LR
+    MEMBERS[Cluster Members] --> CENT[Calculate Centroid]
+    CENT --> DISTS[Compute Distances]
+    DISTS --> SORT[Sort by Distance]
+    SORT --> TOP[Take Top N]
+    TOP --> REPS[Representatives]
 ```
 
 ### Novelty Detection
