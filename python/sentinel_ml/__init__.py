@@ -5,11 +5,11 @@ This package provides the AI/ML capabilities for log analysis:
 - Embedding generation using sentence-transformers
 - Vector storage and similarity search with FAISS
 - Clustering with HDBSCAN
-- Novelty detection
+- Novelty detection with k-NN density estimation
 - LLM-powered explanations via Ollama
 """
 
-__version__ = "0.3.0"
+__version__ = "0.4.0"
 __all__ = [
     "clustering",
     "config",
@@ -18,6 +18,7 @@ __all__ = [
     "logging",
     "models",
     "normalization",
+    "novelty",
     "parser",
     "preprocessing",
     "server",

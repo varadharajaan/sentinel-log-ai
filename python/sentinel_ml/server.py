@@ -32,6 +32,7 @@ from sentinel_ml.config import Config, get_config
 from sentinel_ml.embedding import EmbeddingService, EmbeddingStats
 from sentinel_ml.logging import get_logger, setup_logging
 from sentinel_ml.models import LogRecord
+from sentinel_ml.novelty import NoveltyResult, NoveltyService, NoveltyStats
 from sentinel_ml.preprocessing import PreprocessingService
 from sentinel_ml.vectorstore import SearchResult, VectorStore, VectorStoreStats
 
@@ -93,11 +94,12 @@ class MLServiceServicer:
     Implementation of the ML gRPC service.
 
     This class handles all ML-related requests from the Go agent.
-    Implements preprocessing, embedding, vector search (M2), and clustering (M3).
-    Novelty detection and LLM will be added in subsequent milestones.
+    Implements preprocessing, embedding, vector search (M2), clustering (M3),
+    and novelty detection (M4).
+    LLM-powered explanations will be added in subsequent milestones.
     """
 
-    VERSION = "0.3.0"
+    VERSION = "0.4.0"
 
     def __init__(
         self,
@@ -105,6 +107,7 @@ class MLServiceServicer:
         embedding_service: EmbeddingService | None = None,
         vector_store: VectorStore | None = None,
         clustering_service: ClusteringService | None = None,
+        novelty_service: NoveltyService | None = None,
     ) -> None:
         """
         Initialize the servicer.
@@ -114,6 +117,7 @@ class MLServiceServicer:
             embedding_service: Optional embedding service (for testing).
             vector_store: Optional vector store (for testing).
             clustering_service: Optional clustering service (for testing).
+            novelty_service: Optional novelty service (for testing).
         """
         self.config = config
         self._preprocessing = PreprocessingService()
@@ -132,6 +136,11 @@ class MLServiceServicer:
         self._clustering_service = clustering_service
         self._clustering_initialized = clustering_service is not None
 
+        # Novelty detection service (lazy loaded if not provided)
+        self._novelty_service = novelty_service
+        self._novelty_initialized = novelty_service is not None
+        self._novelty_fitted = False
+
         # Future components
         self._llm_client = None
 
@@ -141,6 +150,7 @@ class MLServiceServicer:
             embedding_initialized=self._embedding_initialized,
             vector_store_initialized=self._vector_store_initialized,
             clustering_initialized=self._clustering_initialized,
+            novelty_initialized=self._novelty_initialized,
         )
 
     def _ensure_embedding_service(self) -> EmbeddingService:
@@ -172,6 +182,18 @@ class MLServiceServicer:
             self._clustering_initialized = True
         assert self._clustering_service is not None
         return self._clustering_service
+
+    def _ensure_novelty_service(self) -> NoveltyService:
+        """Lazy initialize novelty detection service."""
+        if not self._novelty_initialized:
+            logger.info("initializing_novelty_service")
+            self._novelty_service = NoveltyService.from_config(
+                config=self.config.novelty,
+                use_mock=False,
+            )
+            self._novelty_initialized = True
+        assert self._novelty_service is not None
+        return self._novelty_service
 
     def preprocess_records(
         self,

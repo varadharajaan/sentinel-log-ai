@@ -222,6 +222,15 @@ class ProcessingError(SentinelError):
         )
 
     @classmethod
+    def novelty_detection_failed(cls, n_samples: int, reason: str) -> ProcessingError:
+        """Create error for novelty detection failure."""
+        return cls(
+            message=f"Novelty detection failed: {reason}",
+            error_code=ErrorCode.PROCESS_NOVELTY_FAILED,
+            context={"n_samples": n_samples, "reason": reason},
+        )
+
+    @classmethod
     def model_load_failed(cls, model_name: str, reason: str) -> ProcessingError:
         """Create error for model loading failure."""
         return cls(
