@@ -242,7 +242,7 @@ class FAISSIndex(VectorIndex):
         """Return the number of vectors in the index."""
         if self._index is None:
             return 0
-        return self._index.ntotal
+        return int(self._index.ntotal)
 
     @property
     def is_trained(self) -> bool:

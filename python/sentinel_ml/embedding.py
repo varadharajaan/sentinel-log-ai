@@ -355,7 +355,7 @@ class SentenceTransformerProvider(EmbeddingProvider):
                 show_progress_bar=False,
                 normalize_embeddings=True,  # L2 normalize for cosine similarity
             )
-            return embeddings.astype(np.float32)
+            return np.asarray(embeddings, dtype=np.float32)
         except Exception as e:
             logger.error(
                 "embedding_generation_failed",
@@ -378,7 +378,7 @@ class SentenceTransformerProvider(EmbeddingProvider):
             ProcessingError: If embedding generation fails.
         """
         embeddings = self.embed([text])
-        return embeddings[0]
+        return np.asarray(embeddings[0], dtype=np.float32)
 
 
 class MockEmbeddingProvider(EmbeddingProvider):
@@ -432,7 +432,7 @@ class MockEmbeddingProvider(EmbeddingProvider):
 
     def embed_single(self, text: str) -> EmbeddingArray:
         """Generate deterministic mock embedding for single text."""
-        return self.embed([text])[0]
+        return np.asarray(self.embed([text])[0], dtype=np.float32)
 
 
 @dataclass
@@ -614,7 +614,7 @@ class EmbeddingService:
             Embedding vector with shape (embedding_dim,).
         """
         embeddings = self.embed_texts([text], use_cache=use_cache)
-        return embeddings[0]
+        return np.asarray(embeddings[0], dtype=np.float32)
 
     def clear_cache(self) -> None:
         """Clear the embedding cache."""
