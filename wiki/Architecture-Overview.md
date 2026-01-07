@@ -104,17 +104,36 @@ Sentinel Log AI follows a **polyglot microkernel architecture** that separates c
 ## Data Flow Pipeline
 
 ```
-┌─────────┐     ┌─────────┐     ┌─────────┐     ┌─────────┐     ┌─────────┐
-│  Logs   │────►│  Parse  │────►│ Normalize────►│  Embed  │────►│  Store  │
-└─────────┘     └─────────┘     └─────────┘     └─────────┘     └─────────┘
-                                                                     │
-    ┌────────────────────────────────────────────────────────────────┘
-    │
-    ▼
-┌─────────┐     ┌─────────┐     ┌─────────┐     ┌─────────┐
-│ Cluster │────►│ Novelty │────►│ Explain │────►│ Report  │
-└─────────┘     └─────────┘     └─────────┘     └─────────┘
++----------+     +----------+     +----------+     +----------+     +----------+
+|   Logs   |---->|  Parse   |---->| Normalize|---->|  Embed   |---->|  Store   |
++----------+     +----------+     +----------+     +----------+     +----------+
+                                                                         |
+    +--------------------------------------------------------------------+
+    |
+    v
++----------+     +----------+     +----------+     +----------+
+| Cluster  |---->| Novelty  |---->| Explain  |---->|  Report  |
++----------+     +----------+     +----------+     +----------+
+    |
+    v
++----------+     +----------+     +----------+
+| Evaluate |---->| Ablation |---->| Labeling |
++----------+     +----------+     +----------+
 ```
+
+## Evaluation Module
+
+The evaluation module provides quality assessment and validation:
+
+| Component | Purpose |
+|-----------|---------|
+| Quality Metrics | Silhouette, Davies-Bouldin, Calinski-Harabasz scores |
+| Golden Datasets | Curated test cases for regression testing |
+| Reports | Automated Markdown, HTML, JSON reports |
+| Ablation | Component contribution analysis |
+| Labeling | Human quality assessment with inter-rater agreement |
+
+See [[Evaluation Guide|Evaluation-Guide]] for details.
 
 ## Technology Stack
 

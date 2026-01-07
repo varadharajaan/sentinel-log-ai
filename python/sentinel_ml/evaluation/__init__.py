@@ -33,6 +33,7 @@ from sentinel_ml.evaluation.ablation import (
     AblationRunner,
     AblationStudy,
     ComponentConfig,
+    ComponentType,
 )
 from sentinel_ml.evaluation.golden_dataset import (
     ExpectedCluster,
@@ -44,6 +45,7 @@ from sentinel_ml.evaluation.golden_dataset import (
 )
 from sentinel_ml.evaluation.labeling import (
     ClusterPair,
+    InterRaterAgreement,
     LabelingResult,
     LabelingSession,
     LabelingTool,
@@ -63,42 +65,41 @@ from sentinel_ml.evaluation.report import (
     EvaluationReport,
     EvaluationReportConfig,
     EvaluationReportGenerator,
+    ReportFormat,
     TrendAnalysis,
     TrendDirection,
 )
 
 __all__ = [
-    # Ablation
     "AblationConfig",
     "AblationResult",
     "AblationRunner",
     "AblationStudy",
     "CalinskiHarabaszMetric",
-    # Metrics
-    "ClusteringQualityResult",
     "ClusterPair",
+    "ClusteringQualityResult",
     "ComponentConfig",
+    "ComponentType",
     "DaviesBouldinMetric",
-    "ExpectedCluster",
     "EvaluationReport",
-    # Report
     "EvaluationReportConfig",
     "EvaluationReportGenerator",
-    # Golden Dataset
+    "ExpectedCluster",
     "GoldenDataset",
     "GoldenDatasetManager",
     "GoldenRecord",
-    # Labeling
+    "InterRaterAgreement",
+    "LabelType",
     "LabelingResult",
     "LabelingSession",
     "LabelingTool",
-    "LabelType",
     "MetricResult",
     "MetricStrategy",
     "MetricType",
     "QualityEvaluator",
     "RegressionResult",
     "RegressionRunner",
+    "ReportFormat",
     "SilhouetteMetric",
     "TrendAnalysis",
     "TrendDirection",

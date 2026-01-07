@@ -24,15 +24,14 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, ClassVar
 
 import numpy as np
-from numpy.typing import NDArray
 
 from sentinel_ml.logging import get_logger
 
 if TYPE_CHECKING:
-    pass
+    from numpy.typing import NDArray
 
 logger = get_logger(__name__)
 
@@ -237,9 +236,7 @@ class SilhouetteMetric(MetricStrategy):
         start_time = time.perf_counter()
 
         try:
-            filtered_emb, filtered_labels, n_clusters = self._validate_inputs(
-                embeddings, labels
-            )
+            filtered_emb, filtered_labels, n_clusters = self._validate_inputs(embeddings, labels)
 
             from sklearn.metrics import silhouette_score
 
@@ -331,9 +328,7 @@ class DaviesBouldinMetric(MetricStrategy):
         start_time = time.perf_counter()
 
         try:
-            filtered_emb, filtered_labels, n_clusters = self._validate_inputs(
-                embeddings, labels
-            )
+            filtered_emb, filtered_labels, n_clusters = self._validate_inputs(embeddings, labels)
 
             from sklearn.metrics import davies_bouldin_score
 
@@ -420,9 +415,7 @@ class CalinskiHarabaszMetric(MetricStrategy):
         start_time = time.perf_counter()
 
         try:
-            filtered_emb, filtered_labels, n_clusters = self._validate_inputs(
-                embeddings, labels
-            )
+            filtered_emb, filtered_labels, n_clusters = self._validate_inputs(embeddings, labels)
 
             from sklearn.metrics import calinski_harabasz_score
 
@@ -461,7 +454,7 @@ class CalinskiHarabaszMetric(MetricStrategy):
                 metadata={"error": str(e)},
             )
 
-    def _interpret_score(self, score: float, n_clusters: int) -> str:
+    def _interpret_score(self, score: float, _n_clusters: int) -> str:
         """Provide human-readable interpretation of the score."""
         # CH index is relative to number of clusters and samples
         # Higher is generally better, but absolute thresholds are domain-specific
@@ -488,7 +481,7 @@ class QualityEvaluator:
     """
 
     # Default metrics to compute
-    DEFAULT_METRICS: list[type[MetricStrategy]] = [
+    DEFAULT_METRICS: ClassVar[list[type[MetricStrategy]]] = [
         SilhouetteMetric,
         DaviesBouldinMetric,
         CalinskiHarabaszMetric,
@@ -554,9 +547,7 @@ class QualityEvaluator:
                 metric_results.append(result)
 
                 if np.isnan(result.value):
-                    warnings.append(
-                        f"{result.metric_type.value}: {result.interpretation}"
-                    )
+                    warnings.append(f"{result.metric_type.value}: {result.interpretation}")
 
             except Exception as e:
                 logger.error(

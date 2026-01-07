@@ -26,16 +26,17 @@ import time
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
-from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 import numpy as np
-from numpy.typing import NDArray
 
 from sentinel_ml.logging import get_logger
 
 if TYPE_CHECKING:
     from collections.abc import Iterator
+    from pathlib import Path
+
+    from numpy.typing import NDArray
 
 logger = get_logger(__name__)
 
@@ -280,7 +281,7 @@ class GoldenDataset:
             path: Path to save to.
         """
         path.parent.mkdir(parents=True, exist_ok=True)
-        with open(path, "w", encoding="utf-8") as f:
+        with path.open("w", encoding="utf-8") as f:
             json.dump(self.to_dict(), f, indent=2)
 
         logger.info(
@@ -301,7 +302,7 @@ class GoldenDataset:
         Returns:
             Loaded GoldenDataset.
         """
-        with open(path, encoding="utf-8") as f:
+        with path.open(encoding="utf-8") as f:
             data = json.load(f)
 
         dataset = cls.from_dict(data)
@@ -446,14 +447,10 @@ class RegressionRunner:
         ari, nmi = self._compute_clustering_metrics(expected_labels, actual_labels)
 
         # Identify misclassified records
-        misclassified = self._find_misclassified(
-            dataset, expected_labels, actual_labels
-        )
+        misclassified = self._find_misclassified(dataset, expected_labels, actual_labels)
 
         # Find new and missing clusters
-        new_clusters, missing_clusters = self._compare_cluster_sets(
-            dataset, actual_labels
-        )
+        new_clusters, missing_clusters = self._compare_cluster_sets(dataset, actual_labels)
 
         # Compute quality metrics if embeddings provided
         quality_metrics: dict[str, float] = {}
@@ -461,9 +458,7 @@ class RegressionRunner:
             quality_metrics = self._compute_quality_metrics(embeddings, actual_labels)
 
         # Determine overall status
-        status = self._determine_status(
-            dataset, ari, quality_metrics, len(misclassified)
-        )
+        status = self._determine_status(dataset, ari, quality_metrics, len(misclassified))
 
         execution_time = time.perf_counter() - start_time
 
@@ -502,9 +497,7 @@ class RegressionRunner:
     ) -> NDArray[np.int32]:
         """Build expected labels array from dataset."""
         # Map cluster IDs to numeric labels
-        cluster_id_to_label = {
-            cluster.id: i for i, cluster in enumerate(dataset.expected_clusters)
-        }
+        cluster_id_to_label = {cluster.id: i for i, cluster in enumerate(dataset.expected_clusters)}
 
         labels = []
         for record in dataset.records:
@@ -588,7 +581,7 @@ class RegressionRunner:
         dataset: GoldenDataset,
         ari: float,
         quality_metrics: dict[str, float],
-        n_misclassified: int,
+        _n_misclassified: int,
     ) -> ComparisonStatus:
         """Determine overall regression test status."""
         ari_threshold = dataset.quality_thresholds.get("adjusted_rand_index", 0.7)
