@@ -179,6 +179,44 @@ Local LLM-powered explanations for log patterns via Ollama:
 | `ERROR_ANALYSIS` | LogRecord | Error diagnosis, fix suggestions |
 | `SUMMARY` | Aggregated data | Executive summary |
 
+### CLI & UX (M6)
+
+Rich command-line interface with themeable output and report generation:
+
+```
+┌─────────────┐     ┌──────────────┐     ┌───────────────┐     ┌────────────┐
+│ Analysis    │────►│ Console      │────►│ Theme/Format  │────►│ Terminal   │
+│ Results     │     │ (Facade)     │     │ (Strategy)    │     │ Output     │
+└─────────────┘     └──────────────┘     └───────────────┘     └────────────┘
+                           │                     │                    │
+                    • Formatters           • DARK/LIGHT       • Rich tables
+                    • Progress tracker     • COLORBLIND       • JSON export
+                    • Profiler             • MINIMAL/NONE     • Reports
+```
+
+**Key Components:**
+- **Console**: Unified interface for all CLI output operations
+- **Theme System**: 5 themes including colorblind-friendly option
+- **Formatters**: Strategy pattern for JSON, Table, Cluster, Novelty, Explanation
+- **Progress Tracking**: Spinners, progress bars, ETA calculation
+- **Report Generation**: Markdown and HTML export with embedded styles
+- **Profiler**: Timing instrumentation with hierarchical breakdown
+- **Config Commands**: Generate, validate, load, show configuration
+
+**Output Formats:**
+| Format | Description |
+|--------|-------------|
+| `TEXT` | Human-readable colored output |
+| `JSON` | Machine-readable JSON |
+| `TABLE` | Rich formatted tables |
+| `COMPACT` | Minimal one-line output |
+
+**Reports:**
+| Format | Features |
+|--------|----------|
+| Markdown | TOC, executive summary, cluster details, code blocks |
+| HTML | Embedded CSS, responsive layout, cluster cards |
+
 ## 📦 Installation
 
 ### Prerequisites
