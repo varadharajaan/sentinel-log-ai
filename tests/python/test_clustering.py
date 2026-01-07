@@ -27,6 +27,16 @@ from sentinel_ml.clustering import (
 from sentinel_ml.config import ClusteringConfig
 from sentinel_ml.models import LogRecord
 
+# Check if hdbscan is available
+try:
+    import hdbscan  # noqa: F401
+
+    HAS_HDBSCAN = True
+except ImportError:
+    HAS_HDBSCAN = False
+
+requires_hdbscan = pytest.mark.skipif(not HAS_HDBSCAN, reason="hdbscan package not installed")
+
 # ============================================================================
 # Fixtures
 # ============================================================================
@@ -262,6 +272,7 @@ class TestMockClusteringAlgorithm:
 # ============================================================================
 
 
+@requires_hdbscan
 class TestHDBSCANAlgorithm:
     """Tests for HDBSCANAlgorithm."""
 
@@ -441,6 +452,7 @@ class TestClusteringService:
         assert "algorithm" in result_dict
         assert "parameters" in result_dict
 
+    @requires_hdbscan
     def test_recluster_with_params(
         self,
         mock_service: ClusteringService,
@@ -566,6 +578,7 @@ class TestClusteringIntegration:
             assert len(summary.representative_indices) > 0
             assert summary.centroid is not None
 
+    @requires_hdbscan
     def test_clustering_with_hdbscan(self) -> None:
         """Test clustering with actual HDBSCAN."""
         # Create well-separated clusters
@@ -592,6 +605,7 @@ class TestClusteringIntegration:
             assert result.n_clusters >= 0
             assert mock_service.stats.total_clustered == (i + 1) * 20
 
+    @requires_hdbscan
     def test_cluster_with_all_noise(self) -> None:
         """Test clustering when all points are noise."""
         # Very sparse data

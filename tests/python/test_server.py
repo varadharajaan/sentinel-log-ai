@@ -586,9 +586,7 @@ class TestMLServiceServicerClustering:
         assert len(result.labels) == 50
         assert result.n_clusters >= 0
 
-    def test_cluster_logs_with_records(
-        self, servicer_with_clustering: MLServiceServicer
-    ) -> None:
+    def test_cluster_logs_with_records(self, servicer_with_clustering: MLServiceServicer) -> None:
         """Test clustering with log records."""
         from datetime import datetime, timezone
 
@@ -658,9 +656,7 @@ class TestMLServiceServicerClustering:
         assert len(ids) == 0
         assert clustering_result.n_clusters == 0
 
-    def test_get_clustering_stats(
-        self, servicer_with_clustering: MLServiceServicer
-    ) -> None:
+    def test_get_clustering_stats(self, servicer_with_clustering: MLServiceServicer) -> None:
         """Test getting clustering statistics."""
         # Do some clustering
         embeddings = np.random.randn(30, 64).astype(np.float32)
