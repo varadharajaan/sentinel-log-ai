@@ -9,9 +9,9 @@
 
 **AI-powered log intelligence engine for on-call engineers.**
 
-*Crafted with ❤️ by [Varad](https://github.com/varadharajaan)*
+*Crafted by [Varad](https://github.com/varadharajaan)*
 
-[Features](#-features) • [Quick Start](#-quick-start) • [Architecture](#️-architecture) • [Demo](#-demo) • [Documentation](docs/) • [Wiki](../../wiki)
+[Features](#features) • [Quick Start](#installation) • [Architecture](#architecture) • [Demo](#demo) • [Documentation](docs/) • [Wiki](../../wiki)
 
 </div>
 
@@ -19,7 +19,7 @@
 
 Sentinel Log AI automatically groups similar log patterns, detects novel/unseen errors, and provides LLM-powered explanations with suggested next steps — all running locally on your machine.
 
-## � Demo
+## Demo
 
 **Why ML instead of Regex?** Run the interactive demo to see the difference:
 
@@ -48,7 +48,7 @@ This demo shows:
 
 See [docs/demo.md](docs/demo.md) for the full walkthrough.
 
-## �🎯 Features
+## Features
 
 - **Pattern Clustering**: Automatically groups similar log messages using ML embeddings and HDBSCAN
 - **Novelty Detection**: Identifies unseen error patterns that don't match historical clusters
@@ -57,7 +57,7 @@ See [docs/demo.md](docs/demo.md) for the full walkthrough.
 - **Local-First**: Everything runs on your laptop — no cloud dependencies
 - **CLI & API**: Rich CLI for interactive use, gRPC API for integrations
 
-## 🏗️ Architecture
+## Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
@@ -256,7 +256,7 @@ Rich command-line interface with themeable output and report generation:
 | Markdown | TOC, executive summary, cluster details, code blocks |
 | HTML | Embedded CSS, responsive layout, cluster cards |
 
-## 📦 Installation
+## Installation
 
 ### Prerequisites
 
@@ -302,7 +302,7 @@ make test
 make fmt
 ```
 
-## 🚀 Usage
+## Usage
 
 ### Ingest Logs
 
@@ -359,7 +359,7 @@ sentinel-log-ai explain cluster-abc123
 sentinel-log-ai explain --novel
 ```
 
-## ⚙️ Configuration
+## Configuration
 
 Create `sentinel-log-ai.yaml`:
 
@@ -404,7 +404,7 @@ export SENTINEL_ML_LLM__MODEL=mistral
 export SENTINEL_ML_EMBEDDING__DEVICE=cuda
 ```
 
-## 📊 Data Model
+## Data Model
 
 ### LogRecord
 
@@ -524,7 +524,7 @@ sentinel-log-ai/
 └── README.md
 ```
 
-## 🗺️ Roadmap
+## Roadmap
 
 - [x] **M0**: Project scaffolding, dev tooling
 - [x] **M1**: Ingestion & preprocessing pipeline
@@ -532,15 +532,15 @@ sentinel-log-ai/
 - [x] **M3**: HDBSCAN clustering & pattern summaries
 - [x] **M4**: Novelty detection (k-NN density-based)
 - [x] **M5**: LLM explanation with confidence (Ollama integration)
-- [ ] **M6**: CLI polish & rich output
-- [ ] **M7**: Performance benchmarks & docs
-- [ ] **M8**: Storage & retention policies
-- [ ] **M9**: Alerting integrations
-- [ ] **M10**: Evaluation framework
+- [x] **M6**: CLI polish & rich output
+- [x] **M7**: Performance benchmarks & documentation
+- [x] **M8**: Storage & retention policies
+- [x] **M9**: Alerting & integrations
+- [ ] **M10**: Evaluation & quality framework (in progress)
 - [ ] **M11**: Packaging & release
 - [ ] **M12**: Security & privacy
 
-## 🤝 Contributing
+## Contributing
 
 1. Fork the repository
 2. Create a feature branch (`git checkout -b feature/amazing-feature`)
@@ -549,11 +549,11 @@ sentinel-log-ai/
 5. Commit with conventional commits (`git commit -m 'feat: add amazing feature'`)
 6. Push and open a Pull Request
 
-## 📄 License
+## License
 
 MIT License - see [LICENSE](LICENSE) for details.
 
-## 🙏 Acknowledgments
+## Acknowledgments
 
 - [sentence-transformers](https://www.sbert.net/) for embeddings
 - [FAISS](https://github.com/facebookresearch/faiss) for vector search
