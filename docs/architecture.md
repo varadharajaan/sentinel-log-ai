@@ -1182,6 +1182,229 @@ Follows semantic versioning (MAJOR.MINOR.PATCH):
 
 Compatibility rule: Same MAJOR version = compatible.
 
+## Alerting and Integrations
+
+### Alerting Module Overview
+
+The alerting module provides a flexible notification framework for delivering alerts when novel log events are detected.
+
+```mermaid
+graph TB
+    subgraph "Detection Layer"
+        WD[Watch Daemon]
+        ML[ML Pipeline]
+    end
+
+    subgraph "Routing Layer"
+        AR[Alert Router]
+        RR1[Routing Rule 1]
+        RR2[Routing Rule 2]
+        RRN[Routing Rule N]
+    end
+
+    subgraph "Notification Layer"
+        SN[Slack Notifier]
+        EN[Email Notifier]
+        WN[Webhook Notifier]
+        GH[GitHub Issue Creator]
+    end
+
+    subgraph "Monitoring Layer"
+        HC[Health Check]
+        HTTP[HTTP Server]
+    end
+
+    WD --> ML
+    ML --> AR
+    AR --> RR1
+    AR --> RR2
+    AR --> RRN
+    
+    RR1 --> SN
+    RR2 --> EN
+    RRN --> WN
+    RRN --> GH
+    
+    WD --> HC
+    SN --> HC
+    EN --> HC
+    WN --> HC
+    GH --> HC
+    
+    HC --> HTTP
+```
+
+### Notifier Class Hierarchy
+
+```mermaid
+classDiagram
+    class BaseNotifier {
+        <<abstract>>
+        +name: str
+        +send(event: AlertEvent) AlertResult
+        +send_batch(events: List) List
+        +validate_config() List
+        +health_check() bool
+        #_send_impl(event)* AlertResult
+    }
+
+    class NotifierConfig {
+        +name: str
+        +enabled: bool
+        +max_retries: int
+        +retry_delay_seconds: float
+        +timeout_seconds: float
+    }
+
+    class AlertEvent {
+        +event_id: str
+        +message: str
+        +priority: AlertPriority
+        +source: str
+        +timestamp: datetime
+        +tags: List
+        +metadata: Dict
+        +novelty_score: float
+    }
+
+    class AlertResult {
+        +event_id: str
+        +notifier_name: str
+        +status: AlertStatus
+        +message: str
+        +timestamp: datetime
+        +response_data: Dict
+    }
+
+    class SlackNotifier {
+        +webhook_url: str
+        +channel: str
+        #_send_impl(event) AlertResult
+        -_build_payload(event) Dict
+    }
+
+    class EmailNotifier {
+        +smtp_host: str
+        +smtp_port: int
+        +from_address: str
+        +to_addresses: List
+        #_send_impl(event) AlertResult
+        -_build_message(event) MIMEMultipart
+    }
+
+    class WebhookNotifier {
+        +url: str
+        +method: str
+        +auth_type: str
+        #_send_impl(event) AlertResult
+        -_build_headers() Dict
+    }
+
+    class GitHubIssueCreator {
+        +owner: str
+        +repo: str
+        +token: str
+        #_send_impl(event) AlertResult
+        -_build_issue_body(event) str
+    }
+
+    BaseNotifier <|-- SlackNotifier
+    BaseNotifier <|-- EmailNotifier
+    BaseNotifier <|-- WebhookNotifier
+    BaseNotifier <|-- GitHubIssueCreator
+    BaseNotifier --> NotifierConfig
+    BaseNotifier --> AlertEvent
+    BaseNotifier --> AlertResult
+```
+
+### Watch Daemon State Machine
+
+```mermaid
+stateDiagram-v2
+    [*] --> STOPPED
+    STOPPED --> STARTING: start()
+    STARTING --> RUNNING: init complete
+    STARTING --> ERROR: init failed
+    RUNNING --> STOPPING: stop()
+    RUNNING --> ERROR: critical failure
+    STOPPING --> STOPPED: cleanup complete
+    ERROR --> STOPPED: reset()
+    ERROR --> STARTING: restart()
+```
+
+### Alert Routing Flow
+
+```mermaid
+sequenceDiagram
+    participant WD as Watch Daemon
+    participant AR as Alert Router
+    participant RR as Routing Rules
+    participant NT as Notifiers
+    participant HC as Health Check
+
+    WD->>WD: Poll log files
+    WD->>WD: Detect novel lines
+    WD->>AR: Create AlertEvent
+
+    AR->>RR: Evaluate rules
+    loop For each rule
+        RR->>RR: Check priority filter
+        RR->>RR: Check tags filter
+        RR->>RR: Check source pattern
+        alt Rule matches
+            RR->>NT: Get target notifiers
+            NT->>NT: send(event)
+            NT-->>AR: AlertResult
+            alt stop_on_match
+                RR-->>AR: Stop evaluation
+            end
+        end
+    end
+
+    alt No matches
+        AR->>NT: Send to fallback notifiers
+    end
+
+    HC->>WD: Check daemon status
+    HC->>NT: Check notifier health
+    HC-->>HC: Aggregate health status
+```
+
+### Notifier Configuration
+
+| Notifier | Required Config | Optional Config |
+|----------|-----------------|-----------------|
+| `SlackNotifier` | `webhook_url` | `channel`, `username`, `icon_emoji`, `mention_users`, `mention_groups` |
+| `EmailNotifier` | `smtp_host`, `from_address`, `to_addresses` | `smtp_port`, `use_ssl`, `use_tls`, `cc_addresses` |
+| `WebhookNotifier` | `url` | `method`, `auth_type`, `auth_token`, `payload_template` |
+| `GitHubIssueCreator` | `owner`, `repo`, `token` | `labels`, `assignees`, `deduplicate` |
+
+### Priority Mapping
+
+| Priority | Score Range | Color (Slack) | X-Priority (Email) |
+|----------|-------------|---------------|-------------------|
+| `CRITICAL` | >= 0.9 | #dc3545 (red) | 1 |
+| `HIGH` | >= 0.7 | #fd7e14 (orange) | 2 |
+| `MEDIUM` | >= 0.5 | #ffc107 (yellow) | 3 |
+| `LOW` | >= 0.3 | #17a2b8 (cyan) | 4 |
+| `INFO` | < 0.3 | #6c757d (gray) | 5 |
+
+### Design Patterns Used
+
+1. **Template Method Pattern**: `BaseNotifier._send_impl()` defines the algorithm skeleton, subclasses implement specifics
+2. **Strategy Pattern**: Different notifier implementations are interchangeable
+3. **Factory Pattern**: `NotifierFactory` creates notifiers from configuration
+4. **Observer Pattern**: `WatchDaemon` notifies registered notifiers of events
+5. **Chain of Responsibility**: `AlertRouter` routes events through matching rules
+
+### Health Check Endpoints
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/health` | GET | Full health status with component details |
+| `/ready` | GET | Readiness probe (HTTP 200/503) |
+| `/live` | GET | Liveness probe (always HTTP 200) |
+
 ## Security Considerations
 
 1. **Data Masking**: PII/sensitive data masked during normalization
