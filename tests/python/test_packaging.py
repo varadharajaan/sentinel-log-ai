@@ -246,21 +246,22 @@ class TestChangelogRelease:
 
     def test_create_release(self) -> None:
         """Test creating a changelog release."""
+        version = SemanticVersion(major=1, minor=0, patch=0)
         release = ChangelogRelease(
-            version="1.0.0",
+            version=version,
             date=datetime(2024, 1, 15, tzinfo=timezone.utc),
         )
-        assert release.version == "1.0.0"
+        assert release.version == version
         assert release.date.year == 2024
 
     def test_create_unreleased(self) -> None:
         """Test creating an unreleased section."""
         release = ChangelogRelease(
-            version="Unreleased",
-            date=None,
+            version=None,
+            date=datetime.now(tz=timezone.utc),
         )
-        assert release.version == "Unreleased"
-        assert release.date is None
+        assert release.version is None
+        assert release.is_unreleased is True
 
 
 # ==============================================================================
@@ -488,12 +489,14 @@ class TestReleaseConfig:
 
     def test_create_release_config(self, temp_dir: Path) -> None:
         """Test creating a release configuration."""
+        version = SemanticVersion(major=1, minor=0, patch=0)
         config = ReleaseConfig(
             project_root=temp_dir,
-            version="1.0.0",
+            version=version,
             targets=[BuildTarget.PYTHON_WHEEL],
         )
-        assert config.version == "1.0.0"
+        assert config.version == version
+        assert str(config.version) == "1.0.0"
 
 
 # ==============================================================================
