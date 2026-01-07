@@ -51,6 +51,9 @@ class ErrorCode(str, Enum):
     STORAGE_WRITE_FAILED = "SENTINEL_4002"
     STORAGE_INDEX_CORRUPTED = "SENTINEL_4003"
     STORAGE_CAPACITY_EXCEEDED = "SENTINEL_4004"
+    STORAGE_VECTOR_DIM_MISMATCH = "SENTINEL_4005"
+    STORAGE_INDEX_NOT_TRAINED = "SENTINEL_4006"
+    STORAGE_SEARCH_FAILED = "SENTINEL_4007"
 
     # Communication errors (5xxx)
     COMM_CONNECTION_FAILED = "SENTINEL_5001"
@@ -310,6 +313,38 @@ class StorageError(SentinelError):
             error_code=ErrorCode.STORAGE_INDEX_CORRUPTED,
             context={"path": path},
             is_retryable=False,
+        )
+
+    @classmethod
+    def vector_dim_mismatch(
+        cls, expected: int, actual: int, operation: str
+    ) -> StorageError:
+        """Create error for vector dimension mismatch."""
+        return cls(
+            message=f"Vector dimension mismatch during {operation}: expected {expected}, got {actual}",
+            error_code=ErrorCode.STORAGE_VECTOR_DIM_MISMATCH,
+            context={"expected": expected, "actual": actual, "operation": operation},
+            is_retryable=False,
+        )
+
+    @classmethod
+    def index_not_trained(cls, index_type: str) -> StorageError:
+        """Create error for untrained index."""
+        return cls(
+            message=f"Index of type '{index_type}' requires training before use",
+            error_code=ErrorCode.STORAGE_INDEX_NOT_TRAINED,
+            context={"index_type": index_type},
+            is_retryable=False,
+        )
+
+    @classmethod
+    def search_failed(cls, reason: str, k: int) -> StorageError:
+        """Create error for failed search operation."""
+        return cls(
+            message=f"Vector search failed: {reason}",
+            error_code=ErrorCode.STORAGE_SEARCH_FAILED,
+            context={"reason": reason, "k": k},
+            is_retryable=True,
         )
 
 
