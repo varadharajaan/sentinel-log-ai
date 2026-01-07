@@ -79,6 +79,49 @@ The ingestion pipeline provides high-performance log processing:
 - **Preprocessing Pipeline**: Modular stages (parsing → normalization → filtering)
 - **Multi-format Parsers**: JSON, Syslog, Nginx, Python traceback auto-detection
 
+### Embeddings & Vector Store (M2)
+
+Semantic embeddings enable intelligent log similarity and search:
+
+```
+┌─────────────┐     ┌──────────────┐     ┌───────────────┐     ┌────────────┐
+│ Normalized  │────►│ Embedding    │────►│ FAISS Vector  │────►│ Similarity │
+│ Log Records │     │ Service      │     │ Store         │     │ Search     │
+└─────────────┘     └──────────────┘     └───────────────┘     └────────────┘
+                           │                     │
+                    • SentenceTransformer  • Flat/IVF/HNSW
+                    • 384-dim vectors      • Persistence
+                    • LRU caching          • Batch operations
+                    • Mock for testing     • Metadata tracking
+```
+
+**Key Components:**
+- **EmbeddingService**: Sentence-transformers with LRU cache for performance
+- **VectorStore**: FAISS-based storage with multiple index strategies
+- **Strategy Pattern**: Pluggable embedding providers and index types
+
+### Clustering & Patterns (M3)
+
+HDBSCAN clustering discovers log patterns automatically:
+
+```
+┌─────────────┐     ┌──────────────┐     ┌───────────────┐     ┌────────────┐
+│ Embeddings  │────►│ HDBSCAN      │────►│ Cluster       │────►│ Pattern    │
+│ Array       │     │ Algorithm    │     │ Labels        │     │ Summaries  │
+└─────────────┘     └──────────────┘     └───────────────┘     └────────────┘
+                           │                     │                    │
+                    • Density-based        • Noise filtering   • Representative
+                    • No k required        • Unique clusters     samples
+                    • Handles noise        • Centroid calc     • Common level
+                    • Auto-tuned                               • Time ranges
+```
+
+**Key Components:**
+- **ClusteringService**: High-level API for clustering operations
+- **HDBSCANAlgorithm**: Production-grade density-based clustering
+- **ClusterSummary**: Rich metadata with representative samples, common levels, time ranges
+- **Strategy Pattern**: Pluggable clustering algorithms (HDBSCAN, K-Means, DBSCAN)
+
 ## 📦 Installation
 
 ### Prerequisites
@@ -273,9 +316,11 @@ The codebase follows enterprise-grade patterns for maintainability and extensibi
 | Pattern | Usage |
 |---------|-------|
 | **Pipeline** | Sequential preprocessing stages (parse → normalize → filter) |
-| **Strategy** | Pluggable normalization strategies |
-| **Factory** | Parser and normalizer creation |
+| **Strategy** | Pluggable normalization, embedding providers, clustering algorithms |
+| **Factory** | Parser, normalizer, embedding service, clustering service creation |
 | **Facade** | Simple gRPC interface to complex ML subsystems |
+| **Template Method** | Clustering workflow with customizable steps |
+| **Observer** | Statistics tracking for embeddings, vector store, clustering |
 
 ### SOLID Principles
 - **Single Responsibility**: Each component handles one concern (e.g., batch processor only handles batching)
@@ -350,7 +395,7 @@ sentinel-log-ai/
 - [x] **M0**: Project scaffolding, dev tooling
 - [x] **M1**: Ingestion & preprocessing pipeline
 - [x] **M2**: Embeddings & FAISS vector store
-- [ ] **M3**: HDBSCAN clustering & pattern summaries
+- [x] **M3**: HDBSCAN clustering & pattern summaries
 - [ ] **M4**: Novelty detection
 - [ ] **M5**: LLM explanation with confidence
 - [ ] **M6**: CLI polish & rich output
