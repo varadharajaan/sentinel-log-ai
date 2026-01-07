@@ -63,7 +63,7 @@ def sample_log_with_pii() -> str:
     return (
         "User john.doe@example.com logged in from 192.168.1.100. "
         "Contact: 555-123-4567. SSN: 123-45-6789. "
-        "Card: 4111-1111-1111-1111. API key: sk-test0000000000000000000"  # noqa: S105
+        "Card: 4111-1111-1111-1111. API key: sk-test0000000000000000000"
     )
 
 
