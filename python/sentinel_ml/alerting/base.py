@@ -13,7 +13,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, ClassVar
 
 import structlog
 
@@ -354,7 +354,7 @@ class NotifierFactory:
     based on configuration.
     """
 
-    _registry: dict[str, type[BaseNotifier]] = {}
+    _registry: ClassVar[dict[str, type[BaseNotifier]]] = {}
 
     @classmethod
     def register(cls, notifier_type: str, notifier_class: type[BaseNotifier]) -> None:

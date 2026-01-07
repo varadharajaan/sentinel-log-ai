@@ -64,36 +64,28 @@ from sentinel_ml.alerting.webhook import (
 )
 
 __all__ = [
-    # Base classes
     "AlertEvent",
     "AlertPriority",
     "AlertResult",
+    "AlertRouter",
     "AlertStatus",
     "BaseNotifier",
-    "NotifierConfig",
-    # Email
     "EmailConfig",
     "EmailNotifier",
-    # GitHub
     "GitHubConfig",
     "GitHubIssueCreator",
-    # Health check
     "HealthCheck",
     "HealthConfig",
     "HealthStatus",
-    # Router
-    "AlertRouter",
+    "NotifierConfig",
     "RoutingConfig",
     "RoutingRule",
-    # Slack
     "SlackConfig",
     "SlackNotifier",
-    # Watch daemon
     "WatchConfig",
     "WatchDaemon",
     "WatchEvent",
     "WatchState",
-    # Webhook
     "WebhookConfig",
     "WebhookNotifier",
 ]

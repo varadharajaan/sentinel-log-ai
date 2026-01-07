@@ -261,7 +261,7 @@ class EmailNotifier(BaseNotifier):
 </body>
 </html>"""
 
-    def _get_recipients(self, event: AlertEvent) -> list[str]:
+    def _get_recipients(self, event: AlertEvent) -> list[str]:  # noqa: ARG002
         """Get all recipients for the alert."""
         recipients = list(self._email_config.to_addresses)
         recipients.extend(self._email_config.cc_addresses)

@@ -238,9 +238,11 @@ class SlackNotifier(BaseNotifier):
 
         if not self._slack_config.webhook_url:
             errors.append("Slack webhook URL is required")
-        elif not self._slack_config.webhook_url.startswith("https://hooks.slack.com/"):
-            if not self._slack_config.webhook_url.startswith("https://"):
-                errors.append("Slack webhook URL must use HTTPS")
+        elif (
+            not self._slack_config.webhook_url.startswith("https://hooks.slack.com/")
+            and not self._slack_config.webhook_url.startswith("https://")
+        ):
+            errors.append("Slack webhook URL must use HTTPS")
 
         return errors
 

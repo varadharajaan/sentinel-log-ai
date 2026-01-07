@@ -99,14 +99,12 @@ class RoutingRule:
                 return False
 
         # Check tags filter
-        if self.tags is not None:
-            if not any(tag in event.tags for tag in self.tags):
-                return False
+        if self.tags is not None and not any(tag in event.tags for tag in self.tags):
+            return False
 
         # Check source pattern
-        if self.source_pattern is not None:
-            if not re.search(self.source_pattern, event.source):
-                return False
+        if self.source_pattern is not None and not re.search(self.source_pattern, event.source):
+            return False
 
         # Check metadata filters
         for key, expected in self.metadata_filters.items():

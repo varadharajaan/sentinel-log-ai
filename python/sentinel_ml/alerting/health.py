@@ -10,7 +10,7 @@ from __future__ import annotations
 import http.server
 import json
 import threading
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from enum import Enum
 from typing import TYPE_CHECKING, Any
@@ -146,9 +146,11 @@ class HealthCheck:
             components["watch_daemon"] = daemon_status
             if daemon_status["status"] == HealthStatus.UNHEALTHY.value:
                 overall_status = HealthStatus.UNHEALTHY
-            elif daemon_status["status"] == HealthStatus.DEGRADED.value:
-                if overall_status == HealthStatus.HEALTHY:
-                    overall_status = HealthStatus.DEGRADED
+            elif (
+                daemon_status["status"] == HealthStatus.DEGRADED.value
+                and overall_status == HealthStatus.HEALTHY
+            ):
+                overall_status = HealthStatus.DEGRADED
 
         # Check notifiers
         if self._notifiers:
@@ -156,9 +158,11 @@ class HealthCheck:
             components["notifiers"] = notifier_status
             if notifier_status["status"] == HealthStatus.UNHEALTHY.value:
                 overall_status = HealthStatus.UNHEALTHY
-            elif notifier_status["status"] == HealthStatus.DEGRADED.value:
-                if overall_status == HealthStatus.HEALTHY:
-                    overall_status = HealthStatus.DEGRADED
+            elif (
+                notifier_status["status"] == HealthStatus.DEGRADED.value
+                and overall_status == HealthStatus.HEALTHY
+            ):
+                overall_status = HealthStatus.DEGRADED
 
         response: dict[str, Any] = {
             "status": overall_status.value,

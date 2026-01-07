@@ -8,11 +8,10 @@ for novel events detected by the ML pipeline.
 from __future__ import annotations
 
 import threading
-import time
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
-from pathlib import Path
+from pathlib import Path  # noqa: TC003
 from typing import TYPE_CHECKING, Any
 
 import structlog
@@ -344,7 +343,7 @@ class WatchDaemon:
                     )
                     self._stats.alerts_failed += 1
 
-    def _default_detector(self, line: str) -> float:
+    def _default_detector(self, line: str) -> float:  # noqa: ARG002
         """Default novelty detector (always returns 0)."""
         return 0.0
 
