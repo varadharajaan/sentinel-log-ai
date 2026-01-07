@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import io
 import sys
-from collections.abc import Generator, Sequence
+from collections.abc import Sequence
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import TYPE_CHECKING, Any, TextIO
@@ -339,7 +339,9 @@ class Console:
             if isinstance(clusters, Sequence) and not isinstance(clusters, ClusterSummary):
                 data: list[Any] = [c.model_dump() for c in clusters]
             else:
-                data = [clusters.model_dump()]  # type: ignore[union-attr]
+                # Single cluster
+                single = clusters  # type: ClusterSummary
+                data = [single.model_dump()]
             self.print_json(data)
         else:
             formatted = self._cluster_formatter.format(clusters)  # type: ignore[arg-type]
@@ -414,7 +416,9 @@ class Console:
             if isinstance(records, Sequence) and not isinstance(records, LogRecord):
                 data: list[Any] = [r.model_dump() for r in records]
             else:
-                data = [records.model_dump()]  # type: ignore[union-attr]
+                # Single record
+                single = records  # type: LogRecord
+                data = [single.model_dump()]
             self.print_json(data)
         else:
             formatted = self._log_formatter.format(records)  # type: ignore[arg-type]
@@ -439,7 +443,7 @@ class Console:
         name: str,
         total: int = 0,
         status: str = "",
-    ) -> Generator[Any, None, None]:
+    ) -> Any:
         """
         Create a progress tracking context.
 
