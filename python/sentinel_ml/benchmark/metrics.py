@@ -248,7 +248,7 @@ class MemoryTracker:
             try:
                 import resource
 
-                usage = resource.getrusage(resource.RUSAGE_SELF)  # type: ignore[attr-defined]
+                usage = resource.getrusage(resource.RUSAGE_SELF)
                 return {
                     "rss": usage.ru_maxrss * 1024,
                     "vms": 0,
