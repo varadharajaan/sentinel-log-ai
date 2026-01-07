@@ -1,29 +1,30 @@
 # Sentinel Log AI
 
-**🔍 AI-Powered Log Intelligence**
+**AI-Powered Log Intelligence**
 
-*Crafted with ❤️ by [Varad](https://github.com/varadharajaan)*
+*Crafted by [Varad](https://github.com/varadharajaan)*
 
 ---
 
-### 🚀 Getting Started
+### Getting Started
 - [[Home]]
 - [[Quick Start|Quick-Start]]
 - [[Demo|demo/README]]
 
-### 🏗️ Architecture
+### Architecture
 - [[Overview|Architecture-Overview]]
 - [[Design Patterns|Design-Patterns]]
 
-### ✨ Features
-- [[CLI & UX|CLI-UX]]
+### Features
+- [[CLI and UX|CLI-UX]]
+- [[Evaluation and Quality|Evaluation-Guide]]
 
-### 📖 Reference
+### Reference
 - [[Configuration|Configuration-Reference]]
 - [[Error Codes|Error-Codes]]
 - [[FAQ]]
 
-### 👥 Community
+### Community
 - [[Contributing]]
 - [[Testing Guide|Testing-Guide]]
 

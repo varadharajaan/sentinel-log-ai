@@ -60,6 +60,8 @@ dev = [
     "types-PyYAML>=6.0",
     "grpcio-testing>=1.59",
     "mypy-protobuf>=3.5",
+    "scikit-learn>=1.3",
+    "scipy>=1.10",
 ]
 all = [
     "sentinel-log-ai-ml[ml,llm,dev]",
