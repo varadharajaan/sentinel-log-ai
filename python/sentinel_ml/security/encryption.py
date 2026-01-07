@@ -348,7 +348,7 @@ class FernetEncryptionProvider(EncryptionProvider):
         try:
             fernet = self._fernet_class(key.get_key_bytes())
             ciphertext = base64.urlsafe_b64decode(encrypted.ciphertext.encode())
-            plaintext = fernet.decrypt(ciphertext)
+            plaintext: bytes = fernet.decrypt(ciphertext)
 
             logger.debug(
                 "data_decrypted",
@@ -453,18 +453,18 @@ class KeyManager:
             EncryptionError: If no active key exists.
         """
         if self._active_key_id is None:
-            key = self.generate_key()
-            return key
+            new_key = self.generate_key()
+            return new_key
 
-        key = self._keys.get(self._active_key_id)
-        if key is None:
+        active_key = self._keys.get(self._active_key_id)
+        if active_key is None:
             raise EncryptionError(f"Active key not found: {self._active_key_id}")
 
-        if key.is_expired():
-            logger.warning("active_key_expired", key_id=key.key_id)
-            key = self.rotate_key()
+        if active_key.is_expired():
+            logger.warning("active_key_expired", key_id=active_key.key_id)
+            active_key = self.rotate_key()
 
-        return key
+        return active_key
 
     def get_key(self, key_id: str) -> EncryptionKey:
         """
@@ -650,7 +650,8 @@ class EncryptedStore:
 
     def decrypt_to_dict(self, encrypted: EncryptedData) -> dict[str, Any]:
         """Decrypt data and return as dictionary."""
-        return json.loads(self.decrypt(encrypted))
+        result: dict[str, Any] = json.loads(self.decrypt(encrypted))
+        return result
 
     def get_stats(self) -> dict[str, Any]:
         """Get encryption statistics."""

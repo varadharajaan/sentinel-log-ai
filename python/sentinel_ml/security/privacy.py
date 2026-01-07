@@ -541,20 +541,22 @@ class PrivacyManager:
 
     def get_stats(self) -> dict[str, Any]:
         """Get privacy statistics."""
-        return {
-            **self._stats,
-            "redactor_stats": self.redactor.stats.to_dict()
-            if hasattr(self.redactor, "stats")
-            else {},
+        stats: dict[str, Any] = {
+            "total_processed": self._total_processed,
+            "pii_detected": self._pii_detected,
+            "logs_stored": self._logs_stored,
+            "logs_discarded": self._logs_discarded,
+            "redactions_by_type": self._redactions_by_type.copy(),
         }
+        if hasattr(self.redactor, "stats"):
+            stats["redactor_stats"] = self.redactor.stats.to_dict()
+        return stats
 
     def reset_stats(self) -> None:
         """Reset privacy statistics."""
-        self._stats = {
-            "total_processed": 0,
-            "pii_detected": 0,
-            "logs_stored": 0,
-            "logs_discarded": 0,
-            "redactions_by_type": {},
-        }
+        self._total_processed = 0
+        self._pii_detected = 0
+        self._logs_stored = 0
+        self._logs_discarded = 0
+        self._redactions_by_type = {}
         logger.info("privacy_stats_reset")
