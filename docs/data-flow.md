@@ -701,3 +701,111 @@ flowchart TD
 | Storage | 4xxx | Yes | Write failure |
 | Communication | 5xxx | Yes | gRPC timeout |
 | LLM | 6xxx | Yes | Rate limiting |
+
+## CLI Output Flow (M6)
+
+### Console Output Flow
+
+```mermaid
+flowchart TD
+    DATA[Analysis Results] --> CONSOLE[Console]
+    
+    CONSOLE --> THEME[Apply Theme]
+    THEME --> FORMAT{Output Format?}
+    
+    FORMAT -->|TEXT| TEXT_OUT[Text Output]
+    FORMAT -->|JSON| JSON_OUT[JSON Output]
+    FORMAT -->|TABLE| TABLE_OUT[Rich Tables]
+    FORMAT -->|COMPACT| COMPACT_OUT[Minimal Output]
+    
+    TEXT_OUT --> TERMINAL[Terminal]
+    JSON_OUT --> TERMINAL
+    TABLE_OUT --> TERMINAL
+    COMPACT_OUT --> TERMINAL
+```
+
+### Report Generation Flow
+
+```mermaid
+flowchart TD
+    RESULTS[Analysis Results] --> REPORT_DATA[ReportData]
+    
+    REPORT_DATA --> MARKDOWN[Markdown Reporter]
+    REPORT_DATA --> HTML[HTML Reporter]
+    
+    MARKDOWN --> TOC[Generate TOC]
+    TOC --> SUMMARY[Executive Summary]
+    SUMMARY --> CLUSTERS[Cluster Details]
+    CLUSTERS --> NOVELTY[Novelty Section]
+    NOVELTY --> EXPLAIN[Explanations]
+    EXPLAIN --> MD_FILE[.md File]
+    
+    HTML --> CSS[Embed CSS]
+    CSS --> RENDER[Render Sections]
+    RENDER --> HTML_FILE[.html File]
+```
+
+### Progress Tracking Flow
+
+```mermaid
+sequenceDiagram
+    participant User as User
+    participant CLI as CLI
+    participant Tracker as ProgressTracker
+    participant Console as Console
+
+    User->>CLI: Run analysis
+    CLI->>Tracker: Create tracker
+    Tracker->>Console: Show spinner
+    
+    loop Process batches
+        CLI->>Tracker: Update progress
+        Tracker->>Console: Update display
+        Note over Console: Show ETA, rate
+    end
+    
+    CLI->>Tracker: Complete
+    Tracker->>Console: Show success
+```
+
+### Profiling Flow
+
+```mermaid
+flowchart TD
+    ENTRY[Function Entry] --> START[Start Timer]
+    START --> EXEC[Execute Code]
+    EXEC --> NESTED{Nested Measure?}
+    NESTED -->|Yes| CHILD[Child Timer]
+    CHILD --> EXEC
+    NESTED -->|No| END[End Timer]
+    END --> RECORD[Record Timing]
+    RECORD --> REPORT[Generate Report]
+    
+    subgraph "Timing Entry"
+        REPORT --> NAME[Operation Name]
+        REPORT --> DURATION[Duration ms]
+        REPORT --> PARENT[Parent Operation]
+    end
+```
+
+### Configuration Flow
+
+```mermaid
+flowchart TD
+    CMD[Config Command] --> ACTION{Action?}
+    
+    ACTION -->|init| GEN[Generate Config]
+    GEN --> TEMPLATE[Default Template]
+    TEMPLATE --> WRITE[Write YAML]
+    
+    ACTION -->|validate| LOAD[Load YAML]
+    LOAD --> PARSE[Parse Sections]
+    PARSE --> CHECK[Validate Values]
+    CHECK --> RESULT{Valid?}
+    RESULT -->|Yes| OK[Show Success]
+    RESULT -->|No| ERRORS[Show Errors]
+    
+    ACTION -->|show| READ[Read Config]
+    READ --> FORMAT[Format Display]
+    FORMAT --> OUTPUT[Console Output]
+```

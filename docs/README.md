@@ -2,6 +2,8 @@
 
 This directory contains technical documentation for the Sentinel Log AI system.
 
+> 📖 **Looking for user guides?** Check out the [Wiki](https://github.com/varadharajaan/sentinel-log-ai/wiki) for tutorials, quick start guides, and FAQs.
+
 ## Documentation Index
 
 | Document | Description |
@@ -50,3 +52,15 @@ Sentinel Log AI is a polyglot log intelligence system:
 3. **Structured Logging**: JSONL format for analytics pipeline integration
 4. **Error Isolation**: Typed errors with retry logic and graceful degradation
 5. **TDD Approach**: Comprehensive test coverage for all components
+
+---
+
+## 🔗 Related Resources
+
+| Resource | Description |
+|----------|-------------|
+| [Wiki: Quick Start](https://github.com/varadharajaan/sentinel-log-ai/wiki/Quick-Start) | 5-minute getting started guide |
+| [Wiki: CLI & UX](https://github.com/varadharajaan/sentinel-log-ai/wiki/CLI-UX) | Command-line usage and themes |
+| [Wiki: Design Patterns](https://github.com/varadharajaan/sentinel-log-ai/wiki/Design-Patterns) | Strategy, Facade, Template patterns |
+| [Wiki: FAQ](https://github.com/varadharajaan/sentinel-log-ai/wiki/FAQ) | Common questions and answers |
+| [Wiki: Contributing](https://github.com/varadharajaan/sentinel-log-ai/wiki/Contributing) | How to contribute |

@@ -1,11 +1,21 @@
 ﻿# Sentinel Log AI
 
+<div align="center">
+
 [![CI](https://github.com/varadharajaan/sentinel-log-ai/actions/workflows/ci.yml/badge.svg)](https://github.com/varadharajaan/sentinel-log-ai/actions/workflows/ci.yml)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![Go 1.22+](https://img.shields.io/badge/go-1.22+-00ADD8.svg)](https://golang.org/dl/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 **AI-powered log intelligence engine for on-call engineers.**
+
+*Crafted with ❤️ by [Varad](https://github.com/varadharajaan)*
+
+[Features](#-features) • [Quick Start](#-quick-start) • [Architecture](#️-architecture) • [Documentation](docs/) • [Wiki](../../wiki)
+
+</div>
+
+---
 
 Sentinel Log AI automatically groups similar log patterns, detects novel/unseen errors, and provides LLM-powered explanations with suggested next steps — all running locally on your machine.
 
@@ -178,6 +188,44 @@ Local LLM-powered explanations for log patterns via Ollama:
 | `NOVELTY` | NoveltyScore | Why novel, potential impact |
 | `ERROR_ANALYSIS` | LogRecord | Error diagnosis, fix suggestions |
 | `SUMMARY` | Aggregated data | Executive summary |
+
+### CLI & UX (M6)
+
+Rich command-line interface with themeable output and report generation:
+
+```
+┌─────────────┐     ┌──────────────┐     ┌───────────────┐     ┌────────────┐
+│ Analysis    │────►│ Console      │────►│ Theme/Format  │────►│ Terminal   │
+│ Results     │     │ (Facade)     │     │ (Strategy)    │     │ Output     │
+└─────────────┘     └──────────────┘     └───────────────┘     └────────────┘
+                           │                     │                    │
+                    • Formatters           • DARK/LIGHT       • Rich tables
+                    • Progress tracker     • COLORBLIND       • JSON export
+                    • Profiler             • MINIMAL/NONE     • Reports
+```
+
+**Key Components:**
+- **Console**: Unified interface for all CLI output operations
+- **Theme System**: 5 themes including colorblind-friendly option
+- **Formatters**: Strategy pattern for JSON, Table, Cluster, Novelty, Explanation
+- **Progress Tracking**: Spinners, progress bars, ETA calculation
+- **Report Generation**: Markdown and HTML export with embedded styles
+- **Profiler**: Timing instrumentation with hierarchical breakdown
+- **Config Commands**: Generate, validate, load, show configuration
+
+**Output Formats:**
+| Format | Description |
+|--------|-------------|
+| `TEXT` | Human-readable colored output |
+| `JSON` | Machine-readable JSON |
+| `TABLE` | Rich formatted tables |
+| `COMPACT` | Minimal one-line output |
+
+**Reports:**
+| Format | Features |
+|--------|----------|
+| Markdown | TOC, executive summary, cluster details, code blocks |
+| HTML | Embedded CSS, responsive layout, cluster cards |
 
 ## 📦 Installation
 
@@ -482,3 +530,13 @@ MIT License - see [LICENSE](LICENSE) for details.
 - [FAISS](https://github.com/facebookresearch/faiss) for vector search
 - [HDBSCAN](https://hdbscan.readthedocs.io/) for clustering
 - [Ollama](https://ollama.ai/) for local LLM inference
+
+---
+
+<div align="center">
+
+**[⬆ Back to Top](#sentinel-log-ai)**
+
+Made with ❤️ by [Varad](https://github.com/varadharajaan) • [Report Bug](../../issues) • [Request Feature](../../issues)
+
+</div>

@@ -615,6 +615,160 @@ The LLMService handles various LLM response formats:
 | `LLM_CONTEXT_TOO_LONG` | 6002 | No |
 | `LLM_INVALID_RESPONSE` | 6003 | Yes |
 
+## CLI & UX Architecture (M6)
+
+The CLI subsystem provides a rich, themeable command-line interface for interacting with the log analysis system:
+
+```mermaid
+graph TB
+    subgraph "CLI Module"
+        CONSOLE[Console]
+        CONFIG_CMD[Config Commands]
+    end
+
+    subgraph "Presentation"
+        THEMES[Theme System]
+        FMTS[Formatters]
+        PROGRESS[Progress Tracking]
+    end
+
+    subgraph "Output"
+        REPORTERS[Report Generators]
+        PROFILER[Profiler]
+    end
+
+    CONSOLE --> THEMES
+    CONSOLE --> FMTS
+    CONSOLE --> PROGRESS
+    CONSOLE --> REPORTERS
+    CONSOLE --> PROFILER
+
+    CONFIG_CMD --> CONSOLE
+```
+
+### Design Patterns
+
+The CLI module implements several design patterns:
+
+| Pattern | Component | Purpose |
+|---------|-----------|---------|
+| **Strategy** | `Theme`, `Formatter` | Interchangeable themes and output formats |
+| **Facade** | `Console` | Unified interface for all CLI operations |
+| **Template Method** | `Reporter` | Base report structure with customizable sections |
+| **Decorator** | `Profiler` | Add timing instrumentation to functions |
+| **Observer** | `ProgressTracker` | Track and display progress updates |
+
+### Theme System
+
+The theme system provides accessibility-aware color schemes:
+
+| Theme | Use Case |
+|-------|----------|
+| `DARK` | Default, for dark terminals |
+| `LIGHT` | For light terminal backgrounds |
+| `MINIMAL` | Reduced color palette |
+| `COLORBLIND` | Deuteranopia/protanopia friendly |
+| `NONE` | No colors, plain text |
+
+### Formatter Architecture
+
+```mermaid
+classDiagram
+    class Formatter {
+        <<abstract>>
+        +format(data, options) str
+    }
+    
+    class JSONFormatter {
+        +format(data, options) str
+    }
+    
+    class TableFormatter {
+        +format(data, columns, options) str
+    }
+    
+    class ClusterFormatter {
+        +format(clusters, options) str
+    }
+    
+    class NoveltyFormatter {
+        +format(scores, options) str
+    }
+    
+    class ExplanationFormatter {
+        +format(explanations, options) str
+    }
+    
+    Formatter <|-- JSONFormatter
+    Formatter <|-- TableFormatter
+    Formatter <|-- ClusterFormatter
+    Formatter <|-- NoveltyFormatter
+    Formatter <|-- ExplanationFormatter
+```
+
+### Console Features
+
+The Console class provides:
+
+1. **Themed Output**: Semantic colors for info, success, warning, error
+2. **Multiple Formats**: TEXT, JSON, TABLE, COMPACT
+3. **Progress Tracking**: Spinners, progress bars, ETA calculation
+4. **Output Capture**: Capture output for testing
+5. **User Prompts**: Interactive input with defaults
+
+### Report Generation
+
+```mermaid
+flowchart TD
+    DATA[Report Data] --> REPORTER[Reporter]
+    REPORTER --> MD[Markdown Reporter]
+    REPORTER --> HTML[HTML Reporter]
+    
+    MD --> TOC[Table of Contents]
+    MD --> SUMMARY[Executive Summary]
+    MD --> CLUSTERS[Cluster Details]
+    MD --> NOVELTY[Novelty Analysis]
+    MD --> EXPLAIN[Explanations]
+    
+    HTML --> CSS[Embedded CSS]
+    HTML --> CARDS[Cluster Cards]
+    HTML --> CHARTS[Stats Display]
+```
+
+### Profiler Integration
+
+The profiler provides detailed timing breakdown:
+
+```python
+from sentinel_ml.cli import measure, profile
+
+@profile("analyze_logs")
+def analyze(logs):
+    with measure("embedding"):
+        embeddings = embed(logs)
+    with measure("clustering"):
+        clusters = cluster(embeddings)
+    return clusters
+```
+
+Output:
+```
+Performance Profile
+──────────────────────────────
+analyze_logs          150.32ms (100.0%)
+├── embedding          89.45ms  (59.5%)
+└── clustering         60.12ms  (40.0%)
+```
+
+### Configuration Management
+
+| Command | Description |
+|---------|-------------|
+| `generate_config()` | Create default config file |
+| `validate_config()` | Validate existing config |
+| `load_config()` | Parse and instantiate Config |
+| `show_config()` | Display current config |
+
 ## Layer Architecture
 
 The system follows a layered architecture pattern:
