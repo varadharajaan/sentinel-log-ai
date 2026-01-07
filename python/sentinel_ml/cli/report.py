@@ -388,7 +388,11 @@ class MarkdownReporter(Reporter):
         ]
 
         for explanation in explanations:
-            cluster_id = explanation.cluster_id[:12] if len(explanation.cluster_id) > 12 else explanation.cluster_id
+            cluster_id = (
+                explanation.cluster_id[:12]
+                if len(explanation.cluster_id) > 12
+                else explanation.cluster_id
+            )
             lines.append(f"### Cluster {cluster_id}")
             lines.append("")
 
@@ -665,7 +669,11 @@ class HTMLReporter(Reporter):
         """Render HTML LLM explanations section."""
         cards = []
         for explanation in explanations:
-            cluster_id = explanation.cluster_id[:12] if len(explanation.cluster_id) > 12 else explanation.cluster_id
+            cluster_id = (
+                explanation.cluster_id[:12]
+                if len(explanation.cluster_id) > 12
+                else explanation.cluster_id
+            )
             conf = f"{explanation.confidence} ({explanation.confidence_score:.0%})"
 
             actions_html = ""
@@ -677,7 +685,9 @@ class HTMLReporter(Reporter):
             if explanation.remediation:
                 remediation_html = f"<p><strong>Remediation:</strong></p><blockquote>{html.escape(explanation.remediation)}</blockquote>"
 
-            root_cause_escaped = html.escape(explanation.root_cause) if explanation.root_cause else "N/A"
+            root_cause_escaped = (
+                html.escape(explanation.root_cause) if explanation.root_cause else "N/A"
+            )
             cards.append(
                 f"""<div class="cluster-card">
                     <h4>Cluster {html.escape(cluster_id)}</h4>
