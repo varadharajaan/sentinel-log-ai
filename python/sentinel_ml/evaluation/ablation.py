@@ -481,8 +481,12 @@ class AblationRunner:
 
         if success_a and success_b:
             # Compare overall quality
-            avg_a = sum(r.quality_result.overall_quality for r in success_a) / len(success_a)  # type: ignore[union-attr]
-            avg_b = sum(r.quality_result.overall_quality for r in success_b) / len(success_b)  # type: ignore[union-attr]
+            avg_a = sum(
+                r.quality_result.overall_quality for r in success_a if r.quality_result
+            ) / len(success_a)
+            avg_b = sum(
+                r.quality_result.overall_quality for r in success_b if r.quality_result
+            ) / len(success_b)
             metric_diffs["overall_quality"] = avg_a - avg_b
 
             # Compare individual metrics
@@ -519,8 +523,8 @@ class AblationRunner:
 
         significance: dict[str, float] = {}
 
-        scores_a = [r.quality_result.overall_quality for r in results_a if r.quality_result]  # type: ignore[union-attr]
-        scores_b = [r.quality_result.overall_quality for r in results_b if r.quality_result]  # type: ignore[union-attr]
+        scores_a = [r.quality_result.overall_quality for r in results_a if r.quality_result]
+        scores_b = [r.quality_result.overall_quality for r in results_b if r.quality_result]
 
         if len(scores_a) >= 2 and len(scores_b) >= 2:
             _, p_value = stats.ttest_ind(scores_a, scores_b)

@@ -543,11 +543,13 @@ class QualityEvaluator:
         metric_results: list[MetricResult] = []
         for metric in self._metrics:
             try:
-                result = metric.compute(embeddings, labels)
-                metric_results.append(result)
+                metric_result = metric.compute(embeddings, labels)
+                metric_results.append(metric_result)
 
-                if np.isnan(result.value):
-                    warnings.append(f"{result.metric_type.value}: {result.interpretation}")
+                if np.isnan(metric_result.value):
+                    warnings.append(
+                        f"{metric_result.metric_type.value}: {metric_result.interpretation}"
+                    )
 
             except Exception as e:
                 logger.error(
@@ -562,7 +564,7 @@ class QualityEvaluator:
 
         total_time = time.perf_counter() - start_time
 
-        result = ClusteringQualityResult(
+        final_result = ClusteringQualityResult(
             metrics=metric_results,
             overall_quality=overall_quality,
             n_samples=n_samples,
@@ -579,7 +581,7 @@ class QualityEvaluator:
             evaluation_time_seconds=round(total_time, 4),
         )
 
-        return result
+        return final_result
 
     def _compute_overall_quality(
         self,

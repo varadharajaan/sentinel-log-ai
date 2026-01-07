@@ -2,9 +2,9 @@
 
 <div align="center">
 
-**🔍 AI-Powered Log Intelligence for On-Call Engineers**
+**AI-Powered Log Intelligence for On-Call Engineers**
 
-*Crafted with ❤️ by [Varad](https://github.com/varadharajaan)*
+*Crafted by [Varad](https://github.com/varadharajaan)*
 
 </div>
 
@@ -19,7 +19,7 @@ Sentinel Log AI is a polyglot log intelligence system that combines:
 - **Python's ML ecosystem** for intelligent pattern analysis
 - **Local LLM inference** for human-readable explanations
 
-## 📚 Table of Contents
+## Table of Contents
 
 ### Getting Started
 - [[Quick Start Guide|Quick-Start]]
@@ -56,22 +56,25 @@ Sentinel Log AI is a polyglot log intelligence system that combines:
 
 ---
 
-## 🎯 Project Status
+## Project Status
 
 | Milestone | Status | Description |
 |-----------|--------|-------------|
-| M0 | ✅ Complete | Project scaffolding & DevX |
-| M1 | ✅ Complete | Ingestion & preprocessing pipeline |
-| M2 | ✅ Complete | Embeddings & FAISS vector store |
-| M3 | ✅ Complete | HDBSCAN clustering & patterns |
-| M4 | ✅ Complete | Novelty detection (k-NN) |
-| M5 | ✅ Complete | LLM explanations (Ollama) |
-| M6 | ✅ Complete | CLI polish & rich output |
-| M7 | 🔄 Planned | Performance & docs |
-| M8 | 🔄 Planned | Storage & retention |
-| M9 | 🔄 Planned | Alerting integrations |
+| M0 | Complete | Project scaffolding & DevX |
+| M1 | Complete | Ingestion & preprocessing pipeline |
+| M2 | Complete | Embeddings & FAISS vector store |
+| M3 | Complete | HDBSCAN clustering & patterns |
+| M4 | Complete | Novelty detection (k-NN) |
+| M5 | Complete | LLM explanations (Ollama) |
+| M6 | Complete | CLI polish & rich output |
+| M7 | Complete | Performance & documentation |
+| M8 | Complete | Storage & retention |
+| M9 | Complete | Alerting & integrations |
+| M10 | In Progress | Evaluation & quality framework |
+| M11 | Planned | Packaging & release |
+| M12 | Planned | Security & privacy |
 
-## 🏆 Key Capabilities
+## Key Capabilities
 
 ### Pattern Discovery
 Automatically groups similar log messages using semantic embeddings and density-based clustering. No manual regex rules required.
@@ -94,7 +97,7 @@ Everything runs on your machine:
 
 ---
 
-## 🚀 Quick Links
+## Quick Links
 
 - [GitHub Repository](https://github.com/varadharajaan/sentinel-log-ai)
 - [Technical Docs (in repo)](https://github.com/varadharajaan/sentinel-log-ai/tree/main/docs)
@@ -102,7 +105,7 @@ Everything runs on your machine:
 
 ---
 
-## 📁 Technical Documentation
+## Technical Documentation
 
 For in-depth technical specifications, see the [`docs/`](https://github.com/varadharajaan/sentinel-log-ai/tree/main/docs) directory:
 

@@ -359,7 +359,7 @@ class RegressionResult:
         misclassified = len(self.misclassified_records)
         if total == 0:
             return 0.0
-        return (total - misclassified) / total
+        return float((total - misclassified) / total)
 
     def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for serialization."""

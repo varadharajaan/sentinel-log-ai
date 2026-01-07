@@ -691,37 +691,59 @@ class LabelingTool:
         if len(cluster_ids) < 2:
             return []
 
-        pairs = []
+        pairs: list[ClusterPair] = []
         used_pairs: set[tuple[str, str]] = set()
 
-        for _ in range(n_pairs * 2):  # Generate extra to account for duplicates
-            if len(pairs) >= n_pairs:
-                break
+        # Calculate max possible pairs (n choose 2)
+        max_possible_pairs = (len(cluster_ids) * (len(cluster_ids) - 1)) // 2
+        target_pairs = min(n_pairs, max_possible_pairs)
 
-            # Random pair of clusters
-            idx_a, idx_b = random.sample(range(len(cluster_ids)), 2)
-            cluster_a = cluster_ids[idx_a]
-            cluster_b = cluster_ids[idx_b]
+        # If we need most/all pairs, generate exhaustively for reliability
+        if target_pairs >= max_possible_pairs * 0.7:
+            for i, cluster_a in enumerate(cluster_ids):
+                for cluster_b in cluster_ids[i + 1 :]:
+                    if len(pairs) >= target_pairs:
+                        break
+                    samples_a = cluster_samples[cluster_a][:samples_per_cluster]
+                    samples_b = cluster_samples[cluster_b][:samples_per_cluster]
+                    pairs.append(
+                        ClusterPair(
+                            id=str(uuid.uuid4())[:8],
+                            cluster_a_id=cluster_a,
+                            cluster_b_id=cluster_b,
+                            cluster_a_samples=samples_a,
+                            cluster_b_samples=samples_b,
+                        )
+                    )
+                if len(pairs) >= target_pairs:
+                    break
+        else:
+            # Random sampling for larger cluster sets
+            for _ in range(n_pairs * 3):
+                if len(pairs) >= n_pairs:
+                    break
 
-            # Ensure we haven't used this pair
-            pair_key = (min(cluster_a, cluster_b), max(cluster_a, cluster_b))
-            if pair_key in used_pairs:
-                continue
-            used_pairs.add(pair_key)
+                idx_a, idx_b = random.sample(range(len(cluster_ids)), 2)
+                cluster_a = cluster_ids[idx_a]
+                cluster_b = cluster_ids[idx_b]
 
-            # Get samples
-            samples_a = cluster_samples[cluster_a][:samples_per_cluster]
-            samples_b = cluster_samples[cluster_b][:samples_per_cluster]
+                pair_key = (min(cluster_a, cluster_b), max(cluster_a, cluster_b))
+                if pair_key in used_pairs:
+                    continue
+                used_pairs.add(pair_key)
 
-            pairs.append(
-                ClusterPair(
-                    id=str(uuid.uuid4())[:8],
-                    cluster_a_id=cluster_a,
-                    cluster_b_id=cluster_b,
-                    cluster_a_samples=samples_a,
-                    cluster_b_samples=samples_b,
+                samples_a = cluster_samples[cluster_a][:samples_per_cluster]
+                samples_b = cluster_samples[cluster_b][:samples_per_cluster]
+
+                pairs.append(
+                    ClusterPair(
+                        id=str(uuid.uuid4())[:8],
+                        cluster_a_id=cluster_a,
+                        cluster_b_id=cluster_b,
+                        cluster_a_samples=samples_a,
+                        cluster_b_samples=samples_b,
+                    )
                 )
-            )
 
         logger.info(
             "cluster_pairs_generated",
