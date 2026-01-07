@@ -19,27 +19,21 @@ import tempfile
 import time
 from datetime import datetime
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
-from unittest.mock import MagicMock, patch
 
 import pytest
 
 from sentinel_ml.cli import (
-    CapturedOutput,
     ClusterFormatter,
     Console,
     ConsoleConfig,
-    ExplanationFormatter,
     FormatOptions,
     HTMLReporter,
     JSONFormatter,
-    LogRecordFormatter,
     MarkdownReporter,
-    NoveltyFormatter,
     OutputFormat,
     ProfileFormatter,
-    ProfileTiming,
     Profiler,
+    ProfileTiming,
     ProgressTracker,
     ReportConfig,
     ReportData,
@@ -70,10 +64,6 @@ from sentinel_ml.cli import (
     validate_config,
 )
 from sentinel_ml.models import ClusterSummary, LogRecord
-
-if TYPE_CHECKING:
-    pass
-
 
 # =============================================================================
 # Theme Tests
@@ -802,9 +792,8 @@ class TestProfiler:
     def test_measure_nested(self) -> None:
         """Test measuring nested operations."""
         profiler = Profiler()
-        with profiler.measure("outer"):
-            with profiler.measure("inner"):
-                time.sleep(0.01)
+        with profiler.measure("outer"), profiler.measure("inner"):
+            time.sleep(0.01)
         timings = profiler.get_timings()
         # Only root operations in top-level
         assert len(timings) == 1
@@ -1129,7 +1118,7 @@ server:
         with tempfile.TemporaryDirectory() as tmpdir:
             path = Path(tmpdir) / "config.yaml"
             path.write_text("invalid: yaml: content:")
-            is_valid, errors = validate_config(path)
+            is_valid, _errors = validate_config(path)
             assert is_valid is False
 
 
