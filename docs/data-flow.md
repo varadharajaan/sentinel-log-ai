@@ -430,23 +430,176 @@ sequenceDiagram
     Server-->>Client: (processed, embeddings, ids, novelty_result)
 ```
 
-## Phase 5: LLM Explanation
+## Phase 5: LLM Explanation (M5)
 
-### Explanation Flow
+### LLM Explanation Flow
 
 ```mermaid
 sequenceDiagram
-    participant Cluster as Cluster Data
-    participant Prompt as Prompt Builder
-    participant LLM as Ollama/OpenAI
-    participant Output as Explanation
+    participant Client as Server/Client
+    participant Service as LLMService
+    participant Provider as LLMProvider
+    participant Ollama as Ollama API
+    participant Stats as LLMStats
 
-    Cluster->>Prompt: Representative logs
-    Cluster->>Prompt: Cluster metadata
-    Prompt->>LLM: Generate explanation
-    LLM->>Output: Root cause
-    LLM->>Output: Suggested actions
-    LLM->>Output: Confidence score
+    Client->>Service: explain_cluster(summary)
+    Service->>Service: build_prompt(template, data)
+    Service->>Provider: generate(prompt, temperature)
+    
+    alt OllamaProvider
+        Provider->>Ollama: POST /api/generate
+        loop Retry on failure
+            alt Success
+                Ollama-->>Provider: JSON response
+            else Failure
+                Provider->>Provider: exponential_backoff()
+                Provider->>Ollama: Retry
+            end
+        end
+    end
+    
+    Provider-->>Service: (response_text, tokens)
+    Service->>Service: parse_response(json)
+    Service->>Service: validate_fields()
+    Service->>Stats: record_request(success, tokens)
+    Service-->>Client: Explanation
+```
+
+### Prompt Building Flow
+
+```mermaid
+flowchart TD
+    subgraph "Input Data"
+        CS[ClusterSummary]
+        NS[NoveltyScore]
+        LR[LogRecord]
+    end
+
+    subgraph "Prompt Templates"
+        CLUSTER_T[CLUSTER_EXPLANATION_PROMPT]
+        NOVELTY_T[NOVELTY_EXPLANATION_PROMPT]
+        ERROR_T[ERROR_ANALYSIS_PROMPT]
+        SUMMARY_T[SUMMARY_PROMPT]
+    end
+
+    subgraph "Built Prompt"
+        PROMPT[Formatted Prompt]
+    end
+
+    CS --> CLUSTER_T
+    NS --> NOVELTY_T
+    LR --> ERROR_T
+    
+    CLUSTER_T --> PROMPT
+    NOVELTY_T --> PROMPT
+    ERROR_T --> PROMPT
+    SUMMARY_T --> PROMPT
+```
+
+### Response Parsing Flow
+
+```mermaid
+flowchart TD
+    RESPONSE[LLM Response Text] --> CHECK{Is Pure JSON?}
+    CHECK -->|Yes| PARSE[Parse JSON]
+    CHECK -->|No| REGEX[Extract from Markdown]
+    REGEX --> FOUND{JSON Found?}
+    FOUND -->|Yes| PARSE
+    FOUND -->|No| ERROR[Raise LLMError]
+    
+    PARSE --> VALIDATE{Valid Fields?}
+    VALIDATE -->|Yes| EXTRACT[Extract Fields]
+    VALIDATE -->|No| DEFAULTS[Use Default Values]
+    
+    EXTRACT --> BUILD[Build Explanation]
+    DEFAULTS --> BUILD
+    BUILD --> SEVERITY[Map Severity Enum]
+    SEVERITY --> RESULT[Explanation Object]
+```
+
+### Explanation Output Structure
+
+```mermaid
+graph LR
+    subgraph "Explanation"
+        ID[id: UUID]
+        TYPE[explanation_type]
+        SUMMARY[summary: str]
+        ROOT[root_cause: str]
+        ACTIONS[suggested_actions: list]
+        SEV[severity: Severity]
+        CONF[confidence: float]
+        MODEL[model: str]
+        TOKENS[token counts]
+        TIME[response_time]
+        META[metadata: dict]
+    end
+```
+
+### Full Pipeline: Cluster to Explanation
+
+```mermaid
+sequenceDiagram
+    participant Client
+    participant Server as MLServiceServicer
+    participant Cluster as ClusteringService
+    participant LLM as LLMService
+    participant Ollama as Ollama API
+
+    Client->>Server: ingest_embed_and_cluster(records)
+    Server->>Server: preprocess + embed + cluster
+    Server-->>Client: ClusteringResult
+    
+    loop For each cluster
+        Client->>Server: explain_cluster(cluster_summary)
+        Server->>LLM: explain_cluster(summary)
+        LLM->>LLM: build_prompt()
+        LLM->>Ollama: POST /api/generate
+        Ollama-->>LLM: JSON response
+        LLM->>LLM: parse_response()
+        LLM-->>Server: Explanation
+        Server-->>Client: Explanation
+    end
+```
+
+### LLM Provider Selection
+
+```mermaid
+flowchart TD
+    CONFIG[LLMConfig] --> PROVIDER{provider type}
+    PROVIDER -->|ollama| OLLAMA[OllamaProvider]
+    PROVIDER -->|mock| MOCK[MockLLMProvider]
+    
+    OLLAMA --> OPTS[Configure options]
+    OPTS --> URL[base_url: localhost:11434]
+    OPTS --> MODEL[model: llama3.2]
+    OPTS --> RETRY[max_retries: 3]
+    OPTS --> TIMEOUT[timeout: 120s]
+    
+    MOCK --> DET[Deterministic responses]
+    DET --> TEST[For unit testing]
+```
+
+### Error Handling in LLM Flow
+
+```mermaid
+flowchart TD
+    GENERATE[Generate Request] --> TRY{Try Request}
+    TRY -->|Success| PARSE[Parse Response]
+    TRY -->|URLError| RETRY_CHECK{Retries Left?}
+    TRY -->|Timeout| RETRY_CHECK
+    TRY -->|HTTPError 429| RATE[Rate Limited]
+    
+    RATE --> WAIT[Wait retry_after]
+    WAIT --> TRY
+    
+    RETRY_CHECK -->|Yes| BACKOFF[Exponential Backoff]
+    BACKOFF --> TRY
+    RETRY_CHECK -->|No| FAIL[Raise LLMError.provider_error]
+    
+    PARSE --> VALID{Valid JSON?}
+    VALID -->|Yes| SUCCESS[Return Explanation]
+    VALID -->|No| INV[Raise LLMError.invalid_response]
 ```
 
 ### Prompt Template
