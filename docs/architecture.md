@@ -132,10 +132,15 @@ graph LR
         PARSER[parser.py]
         SERVER[server.py]
         EXC[exceptions.py]
+        PRE[preprocessing.py]
+    end
+
+    subgraph "M2 Components"
+        EMB[embedding.py]
+        VS[vectorstore.py]
     end
 
     subgraph "Future Components"
-        EMB[embedding.py]
         CLUSTER[clustering.py]
         NOVELTY[novelty.py]
         LLM[llm.py]
@@ -143,9 +148,130 @@ graph LR
 
     CONFIG --> LOG
     CONFIG --> SERVER
+    CONFIG --> EMB
+    CONFIG --> VS
     MODELS --> PARSER
+    MODELS --> EMB
+    MODELS --> VS
     NORM --> PARSER
+    NORM --> PRE
     EXC --> SERVER
+    EXC --> EMB
+    EXC --> VS
+    EMB --> SERVER
+    VS --> SERVER
+```
+
+## Embedding Architecture (M2)
+
+The embedding subsystem provides semantic vector representations of log messages:
+
+```mermaid
+graph TB
+    subgraph "Embedding Service"
+        ES[EmbeddingService]
+        CACHE[EmbeddingCache LRU]
+        STATS[EmbeddingStats]
+    end
+
+    subgraph "Providers"
+        EP[EmbeddingProvider ABC]
+        ST[SentenceTransformerProvider]
+        MOCK[MockEmbeddingProvider]
+    end
+
+    subgraph "Model"
+        MODEL[all-MiniLM-L6-v2]
+        TENSOR[384-dim Embeddings]
+    end
+
+    ES --> CACHE
+    ES --> STATS
+    ES --> EP
+    EP --> ST
+    EP --> MOCK
+    ST --> MODEL
+    MODEL --> TENSOR
+```
+
+### Embedding Provider Strategy Pattern
+
+The embedding system uses the Strategy pattern for provider flexibility:
+
+| Provider | Use Case |
+|----------|----------|
+| `SentenceTransformerProvider` | Production - Uses sentence-transformers models |
+| `MockEmbeddingProvider` | Testing - Deterministic mock embeddings |
+
+### Embedding Cache Architecture
+
+```mermaid
+flowchart LR
+    INPUT[Normalized Message] --> HASH[MD5 Hash]
+    HASH --> CHECK{In Cache?}
+    CHECK -->|Hit| RET[Return Cached]
+    CHECK -->|Miss| GEN[Generate Embedding]
+    GEN --> STORE[Store in LRU Cache]
+    STORE --> RET2[Return Embedding]
+```
+
+## Vector Store Architecture (M2)
+
+The vector store provides high-performance similarity search:
+
+```mermaid
+graph TB
+    subgraph "VectorStore"
+        VS[VectorStore]
+        META[VectorMetadata]
+        STATS2[VectorStoreStats]
+    end
+
+    subgraph "Index Strategies"
+        VI[VectorIndex ABC]
+        FLAT[Flat Index]
+        IVF[IVF Index]
+        HNSW[HNSW Index]
+        MOCK2[MockVectorIndex]
+    end
+
+    subgraph "FAISS"
+        FAISS_FLAT[IndexFlatIP]
+        FAISS_IVF[IndexIVFFlat]
+        FAISS_HNSW[IndexHNSWFlat]
+    end
+
+    VS --> META
+    VS --> STATS2
+    VS --> VI
+    VI --> FLAT
+    VI --> IVF
+    VI --> HNSW
+    VI --> MOCK2
+    FLAT --> FAISS_FLAT
+    IVF --> FAISS_IVF
+    HNSW --> FAISS_HNSW
+```
+
+### Index Strategy Selection
+
+| Strategy | Best For | Trade-offs |
+|----------|----------|------------|
+| `Flat` | Small datasets (<10K) | Exact search, slower at scale |
+| `IVF` | Medium datasets (10K-1M) | Fast approximate, requires training |
+| `HNSW` | Large datasets (1M+) | Very fast, higher memory |
+
+### Persistence Model
+
+```mermaid
+flowchart TD
+    VS[VectorStore] --> SAVE[save]
+    SAVE --> IDX_FILE[vectors.faiss]
+    SAVE --> META_FILE[metadata.json]
+    
+    LOAD[load] --> IDX_FILE
+    LOAD --> META_FILE
+    LOAD --> VS2[Restored VectorStore]
 ```
 
 ## Layer Architecture

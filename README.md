@@ -327,7 +327,8 @@ sentinel-log-ai/
 │       ├── parser.py       # Python log parsers
 │       ├── preprocessing.py # Preprocessing pipeline
 │       ├── server.py       # gRPC server
-│       ├── embeddings.py   # Sentence transformers (M2)
+│       ├── embedding.py    # Sentence transformers (M2)
+│       ├── vectorstore.py  # FAISS vector store (M2)
 │       ├── clustering.py   # HDBSCAN clustering (M3)
 │       ├── novelty.py      # Novelty detection (M4)
 │       └── llm.py          # Ollama integration (M5)
@@ -348,7 +349,7 @@ sentinel-log-ai/
 
 - [x] **M0**: Project scaffolding, dev tooling
 - [x] **M1**: Ingestion & preprocessing pipeline
-- [ ] **M2**: Embeddings & FAISS vector store
+- [x] **M2**: Embeddings & FAISS vector store
 - [ ] **M3**: HDBSCAN clustering & pattern summaries
 - [ ] **M4**: Novelty detection
 - [ ] **M5**: LLM explanation with confidence
