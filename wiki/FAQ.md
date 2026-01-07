@@ -10,6 +10,27 @@ Sentinel Log AI is an AI-powered log intelligence engine that helps on-call engi
 - **Explains** issues using LLM-powered analysis
 - Runs **locally** on your machine
 
+### Why ML instead of Regex?
+
+This is the #1 question teams ask. Here's the core difference:
+
+| Approach | How It Works | Limitation |
+|----------|--------------|------------|
+| **Regex** | Pattern match on TEXT characters | Only catches attacks you've already seen |
+| **ML** | Semantic match on MEANING | Catches attacks that *mean* the same thing |
+
+**Real-world results from our demo:**
+- **Regex**: Catches 4/4 known attacks, but **0/17 novel attacks (0%)**
+- **ML**: Catches 4/4 known attacks AND **14/17 novel attacks (82%)**
+
+Run the demo yourself:
+```bash
+cd demo
+python demo_ml_vs_regex.py
+```
+
+See [docs/demo.md](../docs/demo.md) for full details.
+
 ### Why Go + Python?
 
 We chose a polyglot architecture to leverage the best of both worlds:

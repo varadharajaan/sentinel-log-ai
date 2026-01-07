@@ -11,7 +11,7 @@
 
 *Crafted with ❤️ by [Varad](https://github.com/varadharajaan)*
 
-[Features](#-features) • [Quick Start](#-quick-start) • [Architecture](#️-architecture) • [Documentation](docs/) • [Wiki](../../wiki)
+[Features](#-features) • [Quick Start](#-quick-start) • [Architecture](#️-architecture) • [Demo](#-demo) • [Documentation](docs/) • [Wiki](../../wiki)
 
 </div>
 
@@ -19,7 +19,36 @@
 
 Sentinel Log AI automatically groups similar log patterns, detects novel/unseen errors, and provides LLM-powered explanations with suggested next steps — all running locally on your machine.
 
-## 🎯 Features
+## � Demo
+
+**Why ML instead of Regex?** Run the interactive demo to see the difference:
+
+```bash
+cd demo
+python demo_ml_vs_regex.py
+```
+
+This demo shows:
+- **75 real production logs** (Kubernetes, PostgreSQL, Kafka, Redis, OAuth, etc.)
+- **4 known attacks** that regex catches (SQL injection, XSS, path traversal)
+- **17 novel attacks** that regex misses but ML detects:
+  - Supply chain attacks (malicious npm packages)
+  - SSRF via PDF generator (cloud metadata theft)
+  - Container escape attempts
+  - Privilege escalation via service account impersonation
+  - DNS data exfiltration (base64 encoded)
+
+**Results:**
+| Detection Method | Known Attacks | Novel Attacks |
+|-----------------|---------------|---------------|
+| Regex | 4/4 (100%) | 0/17 (0%) |
+| ML Novelty | 4/4 (100%) | 14/17 (82%) |
+
+> **Key insight**: Regex detects what you KNOW to look for. ML detects what you DON'T KNOW to look for.
+
+See [docs/demo.md](docs/demo.md) for the full walkthrough.
+
+## �🎯 Features
 
 - **Pattern Clustering**: Automatically groups similar log messages using ML embeddings and HDBSCAN
 - **Novelty Detection**: Identifies unseen error patterns that don't match historical clusters

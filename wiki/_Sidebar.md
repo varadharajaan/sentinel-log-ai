@@ -9,6 +9,7 @@
 ### 🚀 Getting Started
 - [[Home]]
 - [[Quick Start|Quick-Start]]
+- [[Demo|demo/README]]
 
 ### 🏗️ Architecture
 - [[Overview|Architecture-Overview]]

