@@ -356,9 +356,7 @@ class PrivacyManager:
             self._pii_detected += 1
             for pii_type in result.pii_types_found:
                 type_key = pii_type.value
-                self._redactions_by_type[type_key] = (
-                    self._redactions_by_type.get(type_key, 0) + 1
-                )
+                self._redactions_by_type[type_key] = self._redactions_by_type.get(type_key, 0) + 1
             self._notify_pii_detected(original_hash, set(result.pii_types_found))
 
         sanitized = SanitizedLog(
@@ -502,11 +500,7 @@ class PrivacyManager:
         if self.config.mode == PrivacyMode.STORE_ALL:
             recommendations.append("Switch to STORE_REDACTED mode to avoid storing PII")
 
-        pii_rate = (
-            self._pii_detected / self._total_processed
-            if self._total_processed > 0
-            else 0.0
-        )
+        pii_rate = self._pii_detected / self._total_processed if self._total_processed > 0 else 0.0
 
         if pii_rate > 0.5:
             recommendations.append(
