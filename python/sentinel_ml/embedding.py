@@ -545,9 +545,7 @@ class EmbeddingService:
             self.cache.put_batch(miss_texts, new_embeddings)
 
             # Merge cached and new embeddings
-            all_embeddings = np.zeros(
-                (len(texts), self.embedding_dim), dtype=np.float32
-            )
+            all_embeddings = np.zeros((len(texts), self.embedding_dim), dtype=np.float32)
             new_idx = 0
             for i in range(len(texts)):
                 if cached_embeddings[i] is not None:

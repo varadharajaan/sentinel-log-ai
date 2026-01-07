@@ -316,9 +316,7 @@ class StorageError(SentinelError):
         )
 
     @classmethod
-    def vector_dim_mismatch(
-        cls, expected: int, actual: int, operation: str
-    ) -> StorageError:
+    def vector_dim_mismatch(cls, expected: int, actual: int, operation: str) -> StorageError:
         """Create error for vector dimension mismatch."""
         return cls(
             message=f"Vector dimension mismatch during {operation}: expected {expected}, got {actual}",

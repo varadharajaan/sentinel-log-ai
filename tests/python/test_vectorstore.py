@@ -468,7 +468,9 @@ class TestVectorStore:
                 )
                 for i in range(5)
             ]
-            returned_ids = store1.add(embeddings, records=records, ids=[f"id-{i}" for i in range(5)])
+            returned_ids = store1.add(
+                embeddings, records=records, ids=[f"id-{i}" for i in range(5)]
+            )
             assert len(returned_ids) == 5
 
             # Save

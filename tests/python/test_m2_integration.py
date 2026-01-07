@@ -147,9 +147,7 @@ class TestM2EmbeddingPipeline:
         # Should return results (testing that the search works)
         assert len(results) > 0
 
-    def test_embedding_cache_reduces_computation(
-        self, embedding_service: EmbeddingService
-    ) -> None:
+    def test_embedding_cache_reduces_computation(self, embedding_service: EmbeddingService) -> None:
         """Test that embedding cache improves performance for repeated logs."""
         preprocessing = PreprocessingService()
 
@@ -282,9 +280,7 @@ class TestM2ServerIntegration:
         assert vector_stats["total_vectors"] == 50
         assert vector_stats["total_adds"] >= 1
 
-    def test_health_reflects_initialized_components(
-        self, servicer: MLServiceServicer
-    ) -> None:
+    def test_health_reflects_initialized_components(self, servicer: MLServiceServicer) -> None:
         """Test that health check reflects initialized components."""
         # Components should show as initialized since we passed them in
         health = servicer.health_check(detailed=True)

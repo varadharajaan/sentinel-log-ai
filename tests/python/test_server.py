@@ -337,6 +337,7 @@ class TestServerIntegration:
         assert health["healthy"] is True
         assert health["metrics"]["records_processed"] >= 1
 
+
 class TestMLServiceServicerEmbedding:
     """Tests for MLServiceServicer embedding functionality."""
 
@@ -395,9 +396,7 @@ class TestMLServiceServicerEmbedding:
         assert embeddings.shape == (2, 64)
         assert cache_hits == 0  # First call, no cache hits
 
-    def test_embed_records_with_cache(
-        self, servicer_with_mocks: MLServiceServicer
-    ) -> None:
+    def test_embed_records_with_cache(self, servicer_with_mocks: MLServiceServicer) -> None:
         """Test embedding with cache hits."""
         from sentinel_ml.models import LogRecord
 
@@ -425,9 +424,7 @@ class TestMLServiceServicerEmbedding:
         assert servicer_with_mocks._vector_store is not None
         assert servicer_with_mocks._vector_store.size == 3
 
-    def test_add_to_store_with_records(
-        self, servicer_with_mocks: MLServiceServicer
-    ) -> None:
+    def test_add_to_store_with_records(self, servicer_with_mocks: MLServiceServicer) -> None:
         """Test adding embeddings with metadata from records."""
         from sentinel_ml.models import LogRecord
 
@@ -463,9 +460,7 @@ class TestMLServiceServicerEmbedding:
         assert len(results) <= 3
         assert all(0 <= r.similarity <= 1 for r in results)
 
-    def test_search_empty_store(
-        self, servicer_with_mocks: MLServiceServicer
-    ) -> None:
+    def test_search_empty_store(self, servicer_with_mocks: MLServiceServicer) -> None:
         """Test search on empty store."""
         query = np.random.randn(64).astype(np.float32)
 
@@ -473,9 +468,7 @@ class TestMLServiceServicerEmbedding:
 
         assert results == []
 
-    def test_ingest_and_embed_pipeline(
-        self, servicer_with_mocks: MLServiceServicer
-    ) -> None:
+    def test_ingest_and_embed_pipeline(self, servicer_with_mocks: MLServiceServicer) -> None:
         """Test full ingest and embed pipeline."""
         records = [
             {
@@ -490,41 +483,31 @@ class TestMLServiceServicerEmbedding:
             },
         ]
 
-        processed, embeddings, ids = servicer_with_mocks.ingest_and_embed(
-            records, store=True
-        )
+        processed, embeddings, ids = servicer_with_mocks.ingest_and_embed(records, store=True)
 
         assert len(processed) == 2
         assert embeddings.shape == (2, 64)
         assert len(ids) == 2
         assert servicer_with_mocks._vector_store.size == 2
 
-    def test_ingest_and_embed_no_store(
-        self, servicer_with_mocks: MLServiceServicer
-    ) -> None:
+    def test_ingest_and_embed_no_store(self, servicer_with_mocks: MLServiceServicer) -> None:
         """Test pipeline without storing."""
         records = [
             {"message": "test", "raw": "test", "source": "test"},
         ]
 
-        processed, embeddings, ids = servicer_with_mocks.ingest_and_embed(
-            records, store=False
-        )
+        processed, embeddings, ids = servicer_with_mocks.ingest_and_embed(records, store=False)
 
         assert len(processed) == 1
         assert embeddings.shape[0] == 1
         assert ids == []  # Not stored
         assert servicer_with_mocks._vector_store.size == 0
 
-    def test_get_embedding_stats(
-        self, servicer_with_mocks: MLServiceServicer
-    ) -> None:
+    def test_get_embedding_stats(self, servicer_with_mocks: MLServiceServicer) -> None:
         """Test getting embedding stats."""
         from sentinel_ml.models import LogRecord
 
-        records = [
-            LogRecord(message="test", normalized="test", source="test", raw="test")
-        ]
+        records = [LogRecord(message="test", normalized="test", source="test", raw="test")]
         servicer_with_mocks.embed_records(records)
 
         stats = servicer_with_mocks.get_embedding_stats()
@@ -532,9 +515,7 @@ class TestMLServiceServicerEmbedding:
         assert stats["total_embedded"] >= 1
         assert "cache_hit_rate" in stats
 
-    def test_get_vector_store_stats(
-        self, servicer_with_mocks: MLServiceServicer
-    ) -> None:
+    def test_get_vector_store_stats(self, servicer_with_mocks: MLServiceServicer) -> None:
         """Test getting vector store stats."""
         embeddings = np.random.randn(5, 64).astype(np.float32)
         servicer_with_mocks.add_to_store(embeddings)
@@ -544,9 +525,7 @@ class TestMLServiceServicerEmbedding:
         assert stats["total_vectors"] == 5
         assert stats["total_adds"] >= 1
 
-    def test_health_check_with_embedding(
-        self, servicer_with_mocks: MLServiceServicer
-    ) -> None:
+    def test_health_check_with_embedding(self, servicer_with_mocks: MLServiceServicer) -> None:
         """Test health check includes embedding service."""
         health = servicer_with_mocks.health_check(detailed=True)
 
@@ -562,9 +541,7 @@ class TestMLServiceServicerEmbedding:
         assert embedding_component is not None
         assert embedding_component["healthy"] is True
 
-    def test_health_check_with_vectors(
-        self, servicer_with_mocks: MLServiceServicer
-    ) -> None:
+    def test_health_check_with_vectors(self, servicer_with_mocks: MLServiceServicer) -> None:
         """Test health check shows vector count."""
         embeddings = np.random.randn(10, 64).astype(np.float32)
         servicer_with_mocks.add_to_store(embeddings)

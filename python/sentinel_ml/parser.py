@@ -111,9 +111,11 @@ class SyslogParser(Parser):
         ts_str, hostname, program, pid, message = match.groups()
 
         # Parse timestamp (add current year)
+        # Use explicit year to avoid Python 3.15 deprecation warning
         try:
-            ts = datetime.strptime(ts_str, "%b %d %H:%M:%S")
-            ts = ts.replace(year=datetime.now().year)
+            current_year = datetime.now().year
+            ts_str_with_year = f"{current_year} {ts_str}"
+            ts = datetime.strptime(ts_str_with_year, "%Y %b %d %H:%M:%S")
         except ValueError:
             ts = None
 

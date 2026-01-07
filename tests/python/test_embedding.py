@@ -390,9 +390,7 @@ class TestEmbeddingService:
         # Should be the same since we use normalized
         np.testing.assert_array_equal(embedding1, embedding2)
 
-    def test_embed_records_fallback_to_message(
-        self, mock_service: EmbeddingService
-    ) -> None:
+    def test_embed_records_fallback_to_message(self, mock_service: EmbeddingService) -> None:
         """Test fallback to message when normalized is None."""
         record = LogRecord(
             message="Plain message without normalization",
