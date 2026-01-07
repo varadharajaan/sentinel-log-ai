@@ -21,8 +21,7 @@ from typing import TYPE_CHECKING, Any
 from sentinel_ml.logging import get_logger
 
 if TYPE_CHECKING:
-    from sentinel_ml.llm import Explanation
-    from sentinel_ml.models import ClusterSummary
+    from sentinel_ml.models import ClusterSummary, Explanation
     from sentinel_ml.novelty import NoveltyScore
 
 logger = get_logger(__name__)
@@ -389,13 +388,13 @@ class MarkdownReporter(Reporter):
         ]
 
         for explanation in explanations:
-            lines.append(f"### Cluster {explanation.cluster_id[:12]}")
+            cluster_id = explanation.cluster_id[:12] if len(explanation.cluster_id) > 12 else explanation.cluster_id
+            lines.append(f"### Cluster {cluster_id}")
             lines.append("")
 
-            # Severity badge
-            severity = getattr(explanation, "severity", "UNKNOWN")
-            conf = getattr(explanation, "confidence", "MEDIUM")
-            lines.append(f"**Severity**: {severity} | **Confidence**: {conf}")
+            # Confidence
+            conf = f"{explanation.confidence} ({explanation.confidence_score:.0%})"
+            lines.append(f"**Confidence**: {conf}")
             lines.append("")
 
             # Root cause
@@ -403,12 +402,17 @@ class MarkdownReporter(Reporter):
             lines.append(f"> {explanation.root_cause}")
             lines.append("")
 
-            # Suggested actions
-            actions = getattr(explanation, "suggested_actions", [])
-            if actions:
-                lines.append("**Suggested Actions:**")
-                for i, action in enumerate(actions, 1):
+            # Next steps
+            if explanation.next_steps:
+                lines.append("**Next Steps:**")
+                for i, action in enumerate(explanation.next_steps, 1):
                     lines.append(f"{i}. {action}")
+                lines.append("")
+
+            # Remediation
+            if explanation.remediation:
+                lines.append("**Remediation:**")
+                lines.append(f"> {explanation.remediation}")
                 lines.append("")
 
         return "\n".join(lines)
@@ -661,31 +665,27 @@ class HTMLReporter(Reporter):
         """Render HTML LLM explanations section."""
         cards = []
         for explanation in explanations:
-            severity = getattr(explanation, "severity", "UNKNOWN").upper()
-            badge_class = (
-                "badge-high"
-                if severity in ("HIGH", "CRITICAL")
-                else "badge-medium"
-                if severity == "MEDIUM"
-                else "badge-low"
-            )
+            cluster_id = explanation.cluster_id[:12] if len(explanation.cluster_id) > 12 else explanation.cluster_id
+            conf = f"{explanation.confidence} ({explanation.confidence_score:.0%})"
 
-            actions = getattr(explanation, "suggested_actions", [])
             actions_html = ""
-            if actions:
-                action_items = "".join(f"<li>{html.escape(a)}</li>" for a in actions)
-                actions_html = f"<p><strong>Suggested Actions:</strong></p><ol>{action_items}</ol>"
+            if explanation.next_steps:
+                action_items = "".join(f"<li>{html.escape(a)}</li>" for a in explanation.next_steps)
+                actions_html = f"<p><strong>Next Steps:</strong></p><ol>{action_items}</ol>"
 
+            remediation_html = ""
+            if explanation.remediation:
+                remediation_html = f"<p><strong>Remediation:</strong></p><blockquote>{html.escape(explanation.remediation)}</blockquote>"
+
+            root_cause_escaped = html.escape(explanation.root_cause) if explanation.root_cause else "N/A"
             cards.append(
                 f"""<div class="cluster-card">
-                    <h4>Cluster {html.escape(explanation.cluster_id[:12])}</h4>
-                    <p>
-                        <span class="badge {badge_class}">{severity}</span>
-                        <strong>Confidence:</strong> {getattr(explanation, "confidence", "MEDIUM")}
-                    </p>
+                    <h4>Cluster {html.escape(cluster_id)}</h4>
+                    <p><strong>Confidence:</strong> {html.escape(conf)}</p>
                     <p><strong>Root Cause:</strong></p>
-                    <blockquote>{html.escape(explanation.root_cause)}</blockquote>
+                    <blockquote>{root_cause_escaped}</blockquote>
                     {actions_html}
+                    {remediation_html}
                 </div>"""
             )
 

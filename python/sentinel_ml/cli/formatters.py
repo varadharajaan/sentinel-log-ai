@@ -360,7 +360,7 @@ class ClusterFormatter(Formatter):
         first_seen: str
         last_seen: str
 
-    def format(self, data: ClusterSummary | list[ClusterSummary]) -> str:  # type: ignore[override]
+    def format(self, data: ClusterSummary | list[ClusterSummary]) -> str:
         """
         Format cluster summary for display.
 
@@ -446,7 +446,7 @@ class NoveltyFormatter(Formatter):
     visual indicators and explanations.
     """
 
-    def format(self, data: NoveltyScore | list[NoveltyScore]) -> str:  # type: ignore[override]
+    def format(self, data: NoveltyScore | list[NoveltyScore]) -> str:
         """
         Format novelty scores for display.
 
@@ -526,7 +526,7 @@ class ExplanationFormatter(Formatter):
     root cause, severity, actions, and confidence.
     """
 
-    def format(self, data: Explanation | list[Explanation]) -> str:  # type: ignore[override]
+    def format(self, data: Explanation | list[Explanation]) -> str:
         """
         Format explanation for display.
 
@@ -554,14 +554,9 @@ class ExplanationFormatter(Formatter):
         """Format a single explanation."""
         lines: list[str] = []
 
-        # Header with severity
-        severity_color = get_severity_color(explanation.severity, self.theme)
+        # Header with cluster ID
         header = f"💡 Explanation for Cluster {explanation.cluster_id}"
         lines.append(self._colorize(header, self.theme.header))
-
-        # Severity badge
-        severity_badge = f"[{explanation.severity}]"
-        lines.append(f"   Severity: {self._colorize(severity_badge, severity_color)}")
 
         # Confidence
         conf_color = get_confidence_color(explanation.confidence, self.theme)
@@ -575,18 +570,18 @@ class ExplanationFormatter(Formatter):
         for line in explanation.root_cause.split("\n"):
             lines.append(f"   {line}")
 
-        # Suggested actions
-        if explanation.suggested_actions:
+        # Next steps (suggested actions)
+        if explanation.next_steps:
             lines.append("")
-            lines.append(self._colorize("Suggested Actions:", self.theme.primary))
-            for i, action in enumerate(explanation.suggested_actions, 1):
+            lines.append(self._colorize("Next Steps:", self.theme.primary))
+            for i, action in enumerate(explanation.next_steps, 1):
                 lines.append(f"   {i}. {action}")
 
-        # Summary
-        if explanation.summary:
+        # Remediation
+        if explanation.remediation:
             lines.append("")
-            lines.append(self._colorize("Summary:", self.theme.primary))
-            lines.append(f"   {explanation.summary}")
+            lines.append(self._colorize("Remediation:", self.theme.primary))
+            lines.append(f"   {explanation.remediation}")
 
         return lines
 
@@ -599,7 +594,7 @@ class LogRecordFormatter(Formatter):
     level coloring and structured output.
     """
 
-    def format(self, data: LogRecord | list[LogRecord]) -> str:  # type: ignore[override]
+    def format(self, data: LogRecord | list[LogRecord]) -> str:
         """
         Format log records for display.
 
@@ -664,7 +659,7 @@ class ProfileFormatter(Formatter):
     Creates visual timing breakdowns for performance analysis.
     """
 
-    def format(self, data: list[ProfileTiming]) -> str:  # type: ignore[override]
+    def format(self, data: list[ProfileTiming]) -> str:
         """
         Format profiling data for display.
 

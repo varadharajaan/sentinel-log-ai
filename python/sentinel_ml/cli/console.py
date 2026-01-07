@@ -34,8 +34,7 @@ from sentinel_ml.logging import get_logger
 if TYPE_CHECKING:
     from collections.abc import Generator, Sequence
 
-    from sentinel_ml.llm import Explanation
-    from sentinel_ml.models import ClusterSummary, LogRecord
+    from sentinel_ml.models import ClusterSummary, Explanation, LogRecord
     from sentinel_ml.novelty import NoveltyScore
 
 logger = get_logger(__name__)
@@ -306,7 +305,7 @@ class Console:
 
         # Auto-detect columns if not provided
         if not columns:
-            all_keys = set()
+            all_keys: set[str] = set()
             for row in rows:
                 all_keys.update(row.keys())
             columns = [
@@ -338,10 +337,10 @@ class Console:
         output_format = format or self.config.format
 
         if output_format == OutputFormat.JSON:
-            if isinstance(clusters, list):
-                data = [c.model_dump() for c in clusters]
+            if isinstance(clusters, Sequence) and not isinstance(clusters, ClusterSummary):
+                data: list[Any] = [c.model_dump() for c in clusters]
             else:
-                data = clusters.model_dump()
+                data = [clusters.model_dump()]  # type: ignore[union-attr]
             self.print_json(data)
         else:
             formatted = self._cluster_formatter.format(clusters)  # type: ignore[arg-type]
@@ -363,7 +362,10 @@ class Console:
         output_format = format or self.config.format
 
         if output_format == OutputFormat.JSON:
-            data = [s.to_dict() for s in scores] if isinstance(scores, list) else scores.to_dict()
+            if isinstance(scores, Sequence):
+                data: list[Any] = [s.to_dict() for s in scores]
+            else:
+                data = [scores.to_dict()]
             self.print_json(data)
         else:
             formatted = self._novelty_formatter.format(scores)  # type: ignore[arg-type]
@@ -385,10 +387,10 @@ class Console:
         output_format = format or self.config.format
 
         if output_format == OutputFormat.JSON:
-            if isinstance(explanation, list):
-                data = [e.to_dict() for e in explanation]
+            if isinstance(explanation, Sequence):
+                data: list[Any] = [e.model_dump() for e in explanation]
             else:
-                data = explanation.to_dict()
+                data = [explanation.model_dump()]
             self.print_json(data)
         else:
             formatted = self._explanation_formatter.format(explanation)  # type: ignore[arg-type]
@@ -410,10 +412,10 @@ class Console:
         output_format = format or self.config.format
 
         if output_format == OutputFormat.JSON:
-            if isinstance(records, list):
-                data = [r.model_dump() for r in records]
+            if isinstance(records, Sequence) and not isinstance(records, LogRecord):
+                data: list[Any] = [r.model_dump() for r in records]
             else:
-                data = records.model_dump()
+                data = [records.model_dump()]  # type: ignore[union-attr]
             self.print_json(data)
         else:
             formatted = self._log_formatter.format(records)  # type: ignore[arg-type]
