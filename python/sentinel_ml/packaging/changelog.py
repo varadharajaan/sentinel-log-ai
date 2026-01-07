@@ -222,7 +222,7 @@ class ChangelogRelease:
         lines.append("")
 
         for entry_type in ChangelogEntryType:
-            if entry_type in self.entries and self.entries[entry_type]:
+            if self.entries.get(entry_type):
                 lines.append(f"### {entry_type.value}")
                 lines.append("")
                 for entry in self.entries[entry_type]:

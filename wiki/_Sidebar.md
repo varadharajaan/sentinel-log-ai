@@ -19,6 +19,9 @@
 - [[CLI and UX|CLI-UX]]
 - [[Evaluation and Quality|Evaluation-Guide]]
 
+### Deployment
+- [[Packaging Guide|Packaging-Guide]]
+
 ### Reference
 - [[Configuration|Configuration-Reference]]
 - [[Error Codes|Error-Codes]]

@@ -70,8 +70,8 @@ Sentinel Log AI is a polyglot log intelligence system that combines:
 | M7 | Complete | Performance & documentation |
 | M8 | Complete | Storage & retention |
 | M9 | Complete | Alerting & integrations |
-| M10 | In Progress | Evaluation & quality framework |
-| M11 | Planned | Packaging & release |
+| M10 | Complete | Evaluation & quality framework |
+| M11 | In Progress | Packaging & release |
 | M12 | Planned | Security & privacy |
 
 ## Key Capabilities
