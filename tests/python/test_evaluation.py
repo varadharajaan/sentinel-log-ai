@@ -1009,8 +1009,9 @@ class TestLabelingTool:
             for i in range(3)
         ]
 
-        session_a = tool.create_session(labeler_id="user-a", pairs=pairs)
-        session_b = tool.create_session(labeler_id="user-b", pairs=pairs)
+        # Disable shuffling so both sessions process pairs in same order
+        session_a = tool.create_session(labeler_id="user-a", pairs=pairs, shuffle=False)
+        session_b = tool.create_session(labeler_id="user-b", pairs=pairs, shuffle=False)
 
         # Same labels for both sessions - label all pairs for session_a first
         labels = [LabelType.SAME, LabelType.DIFFERENT, LabelType.SAME]
