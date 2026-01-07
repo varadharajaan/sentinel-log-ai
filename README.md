@@ -148,6 +148,37 @@ k-NN density-based novelty detection identifies unusual log patterns:
 - **NoveltyScore**: Per-sample scores with explanations
 - **Strategy Pattern**: Pluggable detection algorithms (k-NN, LOF, Isolation Forest)
 
+### LLM Explanation (M5)
+
+Local LLM-powered explanations for log patterns via Ollama:
+
+```
+┌─────────────┐     ┌──────────────┐     ┌───────────────┐     ┌────────────┐
+│ Cluster/    │────►│ Prompt       │────►│ Ollama LLM    │────►│ Explanation│
+│ Novelty     │     │ Builder      │     │ (llama3.2)    │     │ Response   │
+└─────────────┘     └──────────────┘     └───────────────┘     └────────────┘
+                           │                     │                    │
+                    • Template-based       • Local inference   • Root cause
+                    • Structured input     • Retry logic       • Suggested actions
+                    • Context building     • Timeout handling  • Severity
+                    • JSON format          • Token tracking    • Confidence
+```
+
+**Key Components:**
+- **LLMService**: High-level API for generating explanations
+- **OllamaProvider**: Ollama REST API integration with retry logic
+- **MockLLMProvider**: Deterministic mock for testing
+- **Prompt Templates**: Specialized templates for cluster, novelty, error analysis
+- **Strategy Pattern**: Pluggable LLM providers (Ollama, OpenAI, Mock)
+
+**Explanation Types:**
+| Type | Input | Output |
+|------|-------|--------|
+| `CLUSTER` | ClusterSummary | Root cause, actions, severity |
+| `NOVELTY` | NoveltyScore | Why novel, potential impact |
+| `ERROR_ANALYSIS` | LogRecord | Error diagnosis, fix suggestions |
+| `SUMMARY` | Aggregated data | Executive summary |
+
 ## 📦 Installation
 
 ### Prerequisites
@@ -423,7 +454,7 @@ sentinel-log-ai/
 - [x] **M2**: Embeddings & FAISS vector store
 - [x] **M3**: HDBSCAN clustering & pattern summaries
 - [x] **M4**: Novelty detection (k-NN density-based)
-- [ ] **M5**: LLM explanation with confidence
+- [x] **M5**: LLM explanation with confidence (Ollama integration)
 - [ ] **M6**: CLI polish & rich output
 - [ ] **M7**: Performance benchmarks & docs
 - [ ] **M8**: Storage & retention policies

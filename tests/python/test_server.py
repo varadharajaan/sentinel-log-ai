@@ -1,5 +1,8 @@
 """Tests for the gRPC server module."""
 
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
 from unittest.mock import patch
 
 import numpy as np
@@ -15,6 +18,11 @@ from sentinel_ml.server import (
     create_server,
 )
 from sentinel_ml.vectorstore import VectorStore
+
+if TYPE_CHECKING:
+    from sentinel_ml.clustering import ClusterSummary
+    from sentinel_ml.models import LogRecord
+    from sentinel_ml.novelty import NoveltyScore
 
 
 class TestServerMetrics:
@@ -996,3 +1004,307 @@ class TestServerNoveltyDetection:
         assert "n_novel" in result_dict
         assert "novelty_rate" in result_dict
         assert "score_stats" in result_dict
+
+
+# ============================================================================
+# M5: LLM Explanation Integration Tests
+# ============================================================================
+
+
+class TestServerLLMExplanation:
+    """Integration tests for LLM explanation in the server."""
+
+    @pytest.fixture
+    def config(self) -> Config:
+        """Create a test config."""
+        return Config(
+            server=ServerConfig(host="localhost", port=50051),
+        )
+
+    @pytest.fixture
+    def servicer_with_llm(self, config: Config) -> MLServiceServicer:
+        """Create servicer with mock LLM service."""
+        from sentinel_ml.llm import LLMService
+
+        llm_service = LLMService.from_config(
+            config=config.llm,
+            use_mock=True,
+        )
+        embedding_service = EmbeddingService.create_mock(embedding_dim=64)
+        vector_store = VectorStore.create_mock(dimension=64)
+
+        return MLServiceServicer(
+            config=config,
+            embedding_service=embedding_service,
+            vector_store=vector_store,
+            llm_service=llm_service,
+        )
+
+    @pytest.fixture
+    def mock_cluster_summary(self) -> ClusterSummary:
+        """Create a mock cluster summary for testing."""
+        from datetime import datetime, timezone
+        from unittest.mock import MagicMock
+
+        summary = MagicMock()
+        summary.id = "cluster_test_123"
+        summary.label = 0
+        summary.size = 50
+        summary.representative_messages = [
+            "Connection timeout to database",
+            "Database connection failed",
+            "Cannot reach database server",
+        ]
+        summary.common_level = "ERROR"
+        summary.time_range_start = datetime(2026, 1, 7, 10, 0, 0, tzinfo=timezone.utc)
+        summary.time_range_end = datetime(2026, 1, 7, 11, 0, 0, tzinfo=timezone.utc)
+        return summary
+
+    @pytest.fixture
+    def mock_novelty_score(self) -> NoveltyScore:
+        """Create a mock novelty score for testing."""
+        from unittest.mock import MagicMock
+
+        score = MagicMock()
+        score.score = 0.85
+        score.is_novel = True
+        score.index = 42
+        score.message = "Unusual memory allocation pattern detected"
+        return score
+
+    @pytest.fixture
+    def mock_log_record(self) -> LogRecord:
+        """Create a mock log record for testing."""
+        from datetime import datetime, timezone
+
+        from sentinel_ml.models import LogRecord
+
+        return LogRecord(
+            id="record_test_456",
+            message="NullPointerException in UserService.getUser",
+            raw="ERROR NullPointerException in UserService.getUser",
+            level="ERROR",
+            source="app.log",
+            timestamp=datetime(2026, 1, 7, 12, 0, 0, tzinfo=timezone.utc),
+            attrs={"user_id": "12345", "request_id": "req-abc"},
+        )
+
+    def test_explain_cluster(
+        self,
+        servicer_with_llm: MLServiceServicer,
+        mock_cluster_summary: ClusterSummary,
+    ) -> None:
+        """Test cluster explanation generation."""
+        explanation = servicer_with_llm.explain_cluster(mock_cluster_summary)
+
+        assert explanation is not None
+        assert explanation.summary != ""
+        assert explanation.explanation_type.value == "cluster"
+        assert explanation.confidence > 0
+        assert "cluster_id" in explanation.metadata
+
+    def test_explain_cluster_with_messages(
+        self,
+        servicer_with_llm: MLServiceServicer,
+        mock_cluster_summary: ClusterSummary,
+    ) -> None:
+        """Test cluster explanation with custom messages."""
+        messages = ["Custom error 1", "Custom error 2"]
+        explanation = servicer_with_llm.explain_cluster(
+            mock_cluster_summary,
+            messages=messages,
+        )
+
+        assert explanation is not None
+        assert explanation.summary != ""
+
+    def test_explain_novelty(
+        self,
+        servicer_with_llm: MLServiceServicer,
+        mock_novelty_score: NoveltyScore,
+    ) -> None:
+        """Test novelty explanation generation."""
+        explanation = servicer_with_llm.explain_novelty(
+            mock_novelty_score,
+            threshold=0.7,
+            n_reference=100,
+        )
+
+        assert explanation is not None
+        assert explanation.summary != ""
+        assert explanation.explanation_type.value == "novelty"
+        assert "novelty_score" in explanation.metadata
+        assert explanation.metadata["novelty_score"] == 0.85
+
+    def test_explain_error(
+        self,
+        servicer_with_llm: MLServiceServicer,
+        mock_log_record: LogRecord,
+    ) -> None:
+        """Test error explanation generation."""
+        explanation = servicer_with_llm.explain_error(mock_log_record)
+
+        assert explanation is not None
+        assert explanation.summary != ""
+        assert explanation.explanation_type.value == "error_analysis"
+        assert "record_id" in explanation.metadata
+
+    def test_explain_error_with_context(
+        self,
+        servicer_with_llm: MLServiceServicer,
+        mock_log_record: LogRecord,
+    ) -> None:
+        """Test error explanation with additional context."""
+        context = {"stack_trace": "at line 42", "environment": "production"}
+        explanation = servicer_with_llm.explain_error(
+            mock_log_record,
+            context=context,
+        )
+
+        assert explanation is not None
+        assert explanation.summary != ""
+
+    def test_generate_summary(
+        self,
+        servicer_with_llm: MLServiceServicer,
+    ) -> None:
+        """Test executive summary generation."""
+        explanation = servicer_with_llm.generate_summary(
+            total_logs=1000,
+            n_clusters=5,
+            n_novel=3,
+            cluster_summaries=["Database errors cluster", "Auth failures cluster"],
+            novelty_summaries=["Unusual memory pattern"],
+        )
+
+        assert explanation is not None
+        assert explanation.summary != ""
+        assert explanation.explanation_type.value == "summary"
+        assert explanation.metadata["total_logs"] == 1000
+        assert explanation.metadata["n_clusters"] == 5
+        assert explanation.metadata["n_novel"] == 3
+
+    def test_get_llm_stats(
+        self,
+        servicer_with_llm: MLServiceServicer,
+        mock_cluster_summary: ClusterSummary,
+    ) -> None:
+        """Test LLM statistics retrieval."""
+        # Generate some explanations
+        servicer_with_llm.explain_cluster(mock_cluster_summary)
+        servicer_with_llm.explain_cluster(mock_cluster_summary)
+
+        stats = servicer_with_llm.get_llm_stats()
+
+        assert stats["total_requests"] == 2
+        assert stats["successful_requests"] == 2
+        assert stats["failed_requests"] == 0
+        assert stats["success_rate"] == 1.0
+
+    def test_is_llm_available(
+        self,
+        servicer_with_llm: MLServiceServicer,
+    ) -> None:
+        """Test LLM availability check."""
+        assert servicer_with_llm.is_llm_available() is True
+
+    def test_health_check_with_llm(
+        self,
+        servicer_with_llm: MLServiceServicer,
+        mock_cluster_summary: ClusterSummary,
+    ) -> None:
+        """Test health check includes LLM component."""
+        # Generate an explanation to initialize stats
+        servicer_with_llm.explain_cluster(mock_cluster_summary)
+
+        health = servicer_with_llm.health_check(detailed=True)
+
+        # Should have LLM component
+        llm_component = next(
+            (c for c in health["components"] if "llm" in c["name"].lower()),
+            None,
+        )
+        assert llm_component is not None
+        assert llm_component["healthy"] is True
+        assert "1 requests" in llm_component["message"]
+
+        # Should have LLM stats
+        assert "llm_stats" in health
+        assert health["llm_stats"]["total_requests"] == 1
+
+    def test_health_check_llm_lazy_load(self, config: Config) -> None:
+        """Test health check shows lazy load for uninitialized LLM."""
+        embedding_service = EmbeddingService.create_mock(embedding_dim=64)
+        vector_store = VectorStore.create_mock(dimension=64)
+
+        servicer = MLServiceServicer(
+            config=config,
+            embedding_service=embedding_service,
+            vector_store=vector_store,
+            # No LLM service - should show lazy load
+        )
+
+        health = servicer.health_check(detailed=True)
+
+        llm_component = next(
+            (c for c in health["components"] if "llm" in c["name"].lower()),
+            None,
+        )
+        assert llm_component is not None
+        assert "lazy load" in llm_component["message"].lower()
+
+    def test_explanation_serialization(
+        self,
+        servicer_with_llm: MLServiceServicer,
+        mock_cluster_summary: ClusterSummary,
+    ) -> None:
+        """Test that explanations can be serialized."""
+        explanation = servicer_with_llm.explain_cluster(mock_cluster_summary)
+
+        explanation_dict = explanation.to_dict()
+
+        assert "id" in explanation_dict
+        assert "explanation_type" in explanation_dict
+        assert "summary" in explanation_dict
+        assert "severity" in explanation_dict
+        assert "confidence" in explanation_dict
+        assert "suggested_actions" in explanation_dict
+        assert "created_at" in explanation_dict
+        assert "model" in explanation_dict
+
+    def test_multiple_explanation_types(
+        self,
+        servicer_with_llm: MLServiceServicer,
+        mock_cluster_summary: ClusterSummary,
+        mock_novelty_score: NoveltyScore,
+        mock_log_record: LogRecord,
+    ) -> None:
+        """Test generating multiple types of explanations."""
+        cluster_exp = servicer_with_llm.explain_cluster(mock_cluster_summary)
+        novelty_exp = servicer_with_llm.explain_novelty(mock_novelty_score)
+        error_exp = servicer_with_llm.explain_error(mock_log_record)
+        summary_exp = servicer_with_llm.generate_summary(
+            total_logs=100,
+            n_clusters=2,
+            n_novel=1,
+            cluster_summaries=["C1"],
+            novelty_summaries=["N1"],
+        )
+
+        assert cluster_exp.explanation_type.value == "cluster"
+        assert novelty_exp.explanation_type.value == "novelty"
+        assert error_exp.explanation_type.value == "error_analysis"
+        assert summary_exp.explanation_type.value == "summary"
+
+        # All should have different IDs
+        ids = {
+            cluster_exp.id,
+            novelty_exp.id,
+            error_exp.id,
+            summary_exp.id,
+        }
+        assert len(ids) == 4
+
+        # Stats should show all requests
+        stats = servicer_with_llm.get_llm_stats()
+        assert stats["total_requests"] == 4

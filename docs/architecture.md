@@ -148,7 +148,7 @@ graph LR
         NOVELTY[novelty.py]
     end
 
-    subgraph "Future Components"
+    subgraph "M5 Components"
         LLM[llm.py]
     end
 
@@ -449,6 +449,171 @@ flowchart TD
 | 0.5 - 0.7 | Unusual - Notable deviation from patterns |
 | 0.7 - 0.9 | Novel - Significant anomaly |
 | 0.9 - 1.0 | Highly novel - Extreme outlier |
+
+## LLM Explanation Architecture (M5)
+
+The LLM subsystem provides human-readable explanations for log patterns using large language models:
+
+```mermaid
+graph TB
+    subgraph "LLMService"
+        LS[LLMService]
+        STATS[LLMStats]
+        PROMPTS[Prompt Templates]
+    end
+
+    subgraph "Provider Strategies"
+        LP[LLMProvider ABC]
+        OLLAMA[OllamaProvider]
+        MOCK[MockLLMProvider]
+    end
+
+    subgraph "Input Types"
+        CLUSTER_IN[ClusterSummary]
+        NOVELTY_IN[NoveltyScore]
+        ERROR_IN[LogRecord]
+    end
+
+    subgraph "Output"
+        RESULT[Explanation]
+        SUMMARY[Summary Text]
+        ROOT_CAUSE[Root Cause]
+        ACTIONS[Suggested Actions]
+        SEV[Severity]
+    end
+
+    subgraph "External"
+        OLLAMA_SVC[Ollama Service]
+    end
+
+    CLUSTER_IN --> LS
+    NOVELTY_IN --> LS
+    ERROR_IN --> LS
+    LS --> STATS
+    LS --> PROMPTS
+    LS --> LP
+    LP --> OLLAMA
+    LP --> MOCK
+    OLLAMA --> OLLAMA_SVC
+    LS --> RESULT
+    RESULT --> SUMMARY
+    RESULT --> ROOT_CAUSE
+    RESULT --> ACTIONS
+    RESULT --> SEV
+```
+
+### LLM Provider Strategy Pattern
+
+The LLM system uses the Strategy pattern for provider flexibility:
+
+| Provider | Use Case |
+|----------|----------|
+| `OllamaProvider` | Production - Ollama REST API with retry logic |
+| `MockLLMProvider` | Testing - Deterministic mock responses |
+
+### LLM Configuration
+
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| `provider` | ollama | LLM provider type |
+| `model` | llama3.2 | Model name to use |
+| `base_url` | http://localhost:11434 | Ollama server URL |
+| `timeout` | 120 | Request timeout in seconds |
+| `max_retries` | 3 | Maximum retry attempts |
+| `temperature` | 0.1 | Response temperature (lower = more focused) |
+
+### Explanation Types
+
+```mermaid
+graph LR
+    subgraph "Explanation Types"
+        CLUSTER[CLUSTER]
+        NOVELTY[NOVELTY]
+        ERROR[ERROR_ANALYSIS]
+        ROOT[ROOT_CAUSE]
+        SUMMARY[SUMMARY]
+    end
+
+    subgraph "Severity Levels"
+        CRITICAL[CRITICAL]
+        HIGH[HIGH]
+        MEDIUM[MEDIUM]
+        LOW[LOW]
+        INFO[INFO]
+    end
+```
+
+| Explanation Type | Input | Purpose |
+|------------------|-------|---------|
+| `CLUSTER` | ClusterSummary | Explain cluster pattern and root cause |
+| `NOVELTY` | NoveltyScore | Explain why pattern is novel |
+| `ERROR_ANALYSIS` | LogRecord | Analyze error and suggest fixes |
+| `ROOT_CAUSE` | Multiple inputs | Deep root cause analysis |
+| `SUMMARY` | Aggregated data | Executive summary of analysis |
+
+### LLM Explanation Flow
+
+```mermaid
+flowchart TD
+    INPUT[Input Data] --> BUILD[Build Prompt]
+    BUILD --> TEMPLATE[Apply Template]
+    TEMPLATE --> GENERATE[Generate via Provider]
+    GENERATE --> PARSE[Parse JSON Response]
+    PARSE --> VALIDATE[Validate Response]
+    VALIDATE --> EXTRACT[Extract Fields]
+    EXTRACT --> EXPLANATION[Explanation Object]
+    
+    subgraph "Response Fields"
+        EXPLANATION --> SUM[summary]
+        EXPLANATION --> RC[root_cause]
+        EXPLANATION --> ACT[suggested_actions]
+        EXPLANATION --> SEV2[severity]
+        EXPLANATION --> CONF[confidence]
+    end
+```
+
+### Prompt Templates
+
+Four specialized prompt templates optimize LLM responses:
+
+| Template | Purpose | Key Fields |
+|----------|---------|------------|
+| `CLUSTER_EXPLANATION_PROMPT` | Cluster analysis | log_messages, cluster_size, common_level |
+| `NOVELTY_EXPLANATION_PROMPT` | Novel pattern explanation | log_message, novelty_score, threshold |
+| `ERROR_ANALYSIS_PROMPT` | Error diagnosis | error_message, log_level, source, context |
+| `SUMMARY_PROMPT` | Executive summary | total_logs, n_clusters, n_novel |
+
+### Retry Logic with Exponential Backoff
+
+```mermaid
+flowchart TD
+    START[Request] --> TRY[Try Request]
+    TRY --> SUCCESS{Success?}
+    SUCCESS -->|Yes| RETURN[Return Response]
+    SUCCESS -->|No| RETRY{Retries Left?}
+    RETRY -->|Yes| BACKOFF[Exponential Backoff]
+    BACKOFF --> TRY
+    RETRY -->|No| ERROR[Raise LLMError]
+```
+
+Backoff formula: `delay = 2^attempt` seconds
+
+### Response Parsing
+
+The LLMService handles various LLM response formats:
+
+1. **Pure JSON**: Directly parsed
+2. **Markdown Code Block**: Extracts JSON from ```json``` blocks
+3. **Invalid JSON**: Raises `LLMError.invalid_response()`
+
+### LLM Error Handling
+
+| Error Type | Error Code | Retryable |
+|------------|------------|-----------|
+| `LLM_PROVIDER_ERROR` | 6000 | Yes |
+| `LLM_RATE_LIMITED` | 6001 | Yes |
+| `LLM_CONTEXT_TOO_LONG` | 6002 | No |
+| `LLM_INVALID_RESPONSE` | 6003 | Yes |
 
 ## Layer Architecture
 

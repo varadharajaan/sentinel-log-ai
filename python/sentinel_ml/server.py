@@ -30,6 +30,7 @@ import numpy as np
 from sentinel_ml.clustering import ClusteringResult, ClusteringService, ClusterStats
 from sentinel_ml.config import Config, get_config
 from sentinel_ml.embedding import EmbeddingService, EmbeddingStats
+from sentinel_ml.llm import Explanation, LLMService, LLMStats
 from sentinel_ml.logging import get_logger, setup_logging
 from sentinel_ml.models import LogRecord
 from sentinel_ml.novelty import NoveltyResult, NoveltyService, NoveltyStats
@@ -38,6 +39,9 @@ from sentinel_ml.vectorstore import SearchResult, VectorStore, VectorStoreStats
 
 if TYPE_CHECKING:
     from collections.abc import Callable
+
+    from sentinel_ml.clustering import ClusterSummary
+    from sentinel_ml.novelty import NoveltyScore
 
 logger = get_logger(__name__)
 
@@ -95,11 +99,10 @@ class MLServiceServicer:
 
     This class handles all ML-related requests from the Go agent.
     Implements preprocessing, embedding, vector search (M2), clustering (M3),
-    and novelty detection (M4).
-    LLM-powered explanations will be added in subsequent milestones.
+    novelty detection (M4), and LLM-powered explanations (M5).
     """
 
-    VERSION = "0.4.0"
+    VERSION = "0.5.0"
 
     def __init__(
         self,
@@ -108,6 +111,7 @@ class MLServiceServicer:
         vector_store: VectorStore | None = None,
         clustering_service: ClusteringService | None = None,
         novelty_service: NoveltyService | None = None,
+        llm_service: LLMService | None = None,
     ) -> None:
         """
         Initialize the servicer.
@@ -118,6 +122,7 @@ class MLServiceServicer:
             vector_store: Optional vector store (for testing).
             clustering_service: Optional clustering service (for testing).
             novelty_service: Optional novelty service (for testing).
+            llm_service: Optional LLM service (for testing).
         """
         self.config = config
         self._preprocessing = PreprocessingService()
@@ -141,8 +146,9 @@ class MLServiceServicer:
         self._novelty_initialized = novelty_service is not None
         self._novelty_fitted = False
 
-        # Future components
-        self._llm_client = None
+        # LLM service (lazy loaded if not provided)
+        self._llm_service = llm_service
+        self._llm_initialized = llm_service is not None
 
         logger.info(
             "ml_servicer_initialized",
@@ -151,6 +157,7 @@ class MLServiceServicer:
             vector_store_initialized=self._vector_store_initialized,
             clustering_initialized=self._clustering_initialized,
             novelty_initialized=self._novelty_initialized,
+            llm_initialized=self._llm_initialized,
         )
 
     def _ensure_embedding_service(self) -> EmbeddingService:
@@ -194,6 +201,18 @@ class MLServiceServicer:
             self._novelty_initialized = True
         assert self._novelty_service is not None
         return self._novelty_service
+
+    def _ensure_llm_service(self) -> LLMService:
+        """Lazy initialize LLM service."""
+        if not self._llm_initialized:
+            logger.info("initializing_llm_service")
+            self._llm_service = LLMService.from_config(
+                config=self.config.llm,
+                use_mock=False,
+            )
+            self._llm_initialized = True
+        assert self._llm_service is not None
+        return self._llm_service
 
     def preprocess_records(
         self,
@@ -635,6 +654,163 @@ class MLServiceServicer:
             return NoveltyStats().to_dict()
         return self._novelty_service.stats.to_dict()
 
+    def get_llm_stats(self) -> dict[str, Any]:
+        """Get LLM service statistics."""
+        if not self._llm_initialized or self._llm_service is None:
+            return LLMStats().to_dict()
+        return self._llm_service.get_stats().to_dict()
+
+    def explain_cluster(
+        self,
+        cluster_summary: ClusterSummary,
+        messages: list[str] | None = None,
+    ) -> Explanation:
+        """
+        Generate LLM explanation for a log cluster.
+
+        Args:
+            cluster_summary: Summary of the cluster to explain.
+            messages: Optional list of representative messages.
+
+        Returns:
+            LLM-generated explanation with root cause and actions.
+        """
+        llm_service = self._ensure_llm_service()
+
+        explanation = llm_service.explain_cluster(
+            summary=cluster_summary,
+            messages=messages,
+        )
+
+        logger.info(
+            "cluster_explained",
+            cluster_id=cluster_summary.id,
+            severity=explanation.severity.value,
+            confidence=explanation.confidence,
+            response_time_seconds=explanation.response_time_seconds,
+        )
+
+        return explanation
+
+    def explain_novelty(
+        self,
+        novelty_score: NoveltyScore,
+        message: str | None = None,
+        threshold: float = 0.7,
+        n_reference: int = 0,
+    ) -> Explanation:
+        """
+        Generate LLM explanation for a novel log pattern.
+
+        Args:
+            novelty_score: The novelty score object to explain.
+            message: Optional message text override.
+            threshold: Novelty detection threshold used.
+            n_reference: Number of reference patterns in baseline.
+
+        Returns:
+            LLM-generated explanation with analysis.
+        """
+        llm_service = self._ensure_llm_service()
+
+        explanation = llm_service.explain_novelty(
+            novelty_score=novelty_score,
+            message=message,
+            threshold=threshold,
+            n_reference=n_reference,
+        )
+
+        logger.info(
+            "novelty_explained",
+            novelty_score=novelty_score.score,
+            severity=explanation.severity.value,
+            confidence=explanation.confidence,
+            response_time_seconds=explanation.response_time_seconds,
+        )
+
+        return explanation
+
+    def explain_error(
+        self,
+        record: LogRecord,
+        context: dict[str, Any] | None = None,
+    ) -> Explanation:
+        """
+        Generate LLM explanation for an error log.
+
+        Args:
+            record: The log record containing the error.
+            context: Optional additional context.
+
+        Returns:
+            LLM-generated explanation with root cause and actions.
+        """
+        llm_service = self._ensure_llm_service()
+
+        explanation = llm_service.explain_error(
+            record=record,
+            context=context,
+        )
+
+        logger.info(
+            "error_explained",
+            record_id=record.id,
+            severity=explanation.severity.value,
+            confidence=explanation.confidence,
+            response_time_seconds=explanation.response_time_seconds,
+        )
+
+        return explanation
+
+    def generate_summary(
+        self,
+        total_logs: int,
+        n_clusters: int,
+        n_novel: int,
+        cluster_summaries: list[str],
+        novelty_summaries: list[str],
+    ) -> Explanation:
+        """
+        Generate executive summary of log analysis.
+
+        Args:
+            total_logs: Total number of logs analyzed.
+            n_clusters: Number of clusters found.
+            n_novel: Number of novel patterns detected.
+            cluster_summaries: Summary text for each cluster.
+            novelty_summaries: Summary text for novel patterns.
+
+        Returns:
+            LLM-generated executive summary.
+        """
+        llm_service = self._ensure_llm_service()
+
+        explanation = llm_service.generate_summary(
+            total_logs=total_logs,
+            n_clusters=n_clusters,
+            n_novel=n_novel,
+            cluster_summaries=cluster_summaries,
+            novelty_summaries=novelty_summaries,
+        )
+
+        logger.info(
+            "summary_generated",
+            total_logs=total_logs,
+            n_clusters=n_clusters,
+            n_novel=n_novel,
+            confidence=explanation.confidence,
+            response_time_seconds=explanation.response_time_seconds,
+        )
+
+        return explanation
+
+    def is_llm_available(self) -> bool:
+        """Check if LLM service is available."""
+        if not self._llm_initialized:
+            return False
+        assert self._llm_service is not None
+        return self._llm_service.is_available()
+
     def health_check(self, detailed: bool = False) -> dict[str, Any]:
         """
         Check service health.
@@ -732,6 +908,26 @@ class MLServiceServicer:
                 )
             )
 
+        # Check LLM service
+        if self._llm_initialized and self._llm_service is not None:
+            llm_stats = self._llm_service.get_stats()
+            llm_available = self._llm_service.is_available()
+            components.append(
+                ComponentHealth(
+                    name="llm_service",
+                    healthy=llm_available,
+                    message=f"{'Available' if llm_available else 'Unavailable'} ({llm_stats.total_requests} requests)",
+                )
+            )
+        else:
+            components.append(
+                ComponentHealth(
+                    name="llm_service",
+                    healthy=True,  # Not loaded is OK - lazy initialization
+                    message="Ready (lazy load)",
+                )
+            )
+
         result: dict[str, Any] = {
             "healthy": overall_healthy,
             "version": self.VERSION,
@@ -746,6 +942,7 @@ class MLServiceServicer:
             result["vector_store_stats"] = self.get_vector_store_stats()
             result["clustering_stats"] = self.get_clustering_stats()
             result["novelty_stats"] = self.get_novelty_stats()
+            result["llm_stats"] = self.get_llm_stats()
 
         return result
 
