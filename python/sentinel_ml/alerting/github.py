@@ -194,32 +194,38 @@ class GitHubIssueCreator(BaseNotifier):
         ]
 
         if event.tags:
-            lines.extend([
-                "",
-                "## Tags",
-                "",
-                ", ".join(f"`{tag}`" for tag in event.tags),
-            ])
+            lines.extend(
+                [
+                    "",
+                    "## Tags",
+                    "",
+                    ", ".join(f"`{tag}`" for tag in event.tags),
+                ]
+            )
 
         if self._github_config.include_metadata and event.metadata:
-            lines.extend([
-                "",
-                "## Metadata",
-                "",
-                "| Key | Value |",
-                "|-----|-------|",
-            ])
+            lines.extend(
+                [
+                    "",
+                    "## Metadata",
+                    "",
+                    "| Key | Value |",
+                    "|-----|-------|",
+                ]
+            )
             for key, value in event.metadata.items():
                 # Escape pipe characters in values
                 safe_value = str(value).replace("|", "\\|")[:200]
                 lines.append(f"| {key} | {safe_value} |")
 
-        lines.extend([
-            "",
-            "---",
-            "",
-            "*This issue was automatically created by Sentinel ML.*",
-        ])
+        lines.extend(
+            [
+                "",
+                "---",
+                "",
+                "*This issue was automatically created by Sentinel ML.*",
+            ]
+        )
 
         return "\n".join(lines)
 
@@ -324,9 +330,7 @@ class GitHubIssueCreator(BaseNotifier):
         request = Request(url, data=data, headers=headers, method=method)
 
         try:
-            with urlopen(
-                request, timeout=self._github_config.timeout_seconds
-            ) as response:
+            with urlopen(request, timeout=self._github_config.timeout_seconds) as response:
                 body = response.read().decode("utf-8")
                 return json.loads(body)
         except HTTPError as e:

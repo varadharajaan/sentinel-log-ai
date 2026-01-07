@@ -280,9 +280,7 @@ class AlertRouter:
 
         return targets
 
-    def _deliver(
-        self, event: AlertEvent, notifiers: list[BaseNotifier]
-    ) -> list[AlertResult]:
+    def _deliver(self, event: AlertEvent, notifiers: list[BaseNotifier]) -> list[AlertResult]:
         """Deliver event to notifiers."""
         results: list[AlertResult] = []
 
@@ -302,12 +300,14 @@ class AlertRouter:
                     notifier=notifier.name,
                     error=str(e),
                 )
-                results.append(AlertResult(
-                    event_id=event.event_id,
-                    status=AlertStatus.FAILED,
-                    notifier_name=notifier.name,
-                    error=str(e),
-                ))
+                results.append(
+                    AlertResult(
+                        event_id=event.event_id,
+                        status=AlertStatus.FAILED,
+                        notifier_name=notifier.name,
+                        error=str(e),
+                    )
+                )
                 self._stats.failed_deliveries += 1
 
         return results

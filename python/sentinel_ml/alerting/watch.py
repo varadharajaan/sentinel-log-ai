@@ -51,9 +51,7 @@ class WatchEvent:
 
     file_path: Path
     event_type: str
-    timestamp: datetime = field(
-        default_factory=lambda: datetime.now(tz=timezone.utc)
-    )
+    timestamp: datetime = field(default_factory=lambda: datetime.now(tz=timezone.utc))
     lines_added: int = 0
     novel_count: int = 0
 
@@ -378,9 +376,7 @@ class WatchStats:
     alerts_sent: int = 0
     alerts_failed: int = 0
     error_count: int = 0
-    started_at: datetime = field(
-        default_factory=lambda: datetime.now(tz=timezone.utc)
-    )
+    started_at: datetime = field(default_factory=lambda: datetime.now(tz=timezone.utc))
 
     @property
     def uptime_seconds(self) -> float:

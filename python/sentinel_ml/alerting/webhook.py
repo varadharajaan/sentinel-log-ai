@@ -124,9 +124,7 @@ class WebhookNotifier(BaseNotifier):
         """
         if self._webhook_config.payload_template:
             # Use custom template with variable substitution
-            return self._apply_template(
-                self._webhook_config.payload_template, event
-            )
+            return self._apply_template(self._webhook_config.payload_template, event)
 
         # Default payload structure
         payload: dict[str, Any] = {
@@ -147,9 +145,7 @@ class WebhookNotifier(BaseNotifier):
 
         return payload
 
-    def _apply_template(
-        self, template: dict[str, Any], event: AlertEvent
-    ) -> dict[str, Any]:
+    def _apply_template(self, template: dict[str, Any], event: AlertEvent) -> dict[str, Any]:
         """
         Apply event data to payload template.
 
@@ -200,9 +196,7 @@ class WebhookNotifier(BaseNotifier):
 
         return headers
 
-    def _post_webhook(
-        self, payload: dict[str, Any], headers: dict[str, str]
-    ) -> dict[str, Any]:
+    def _post_webhook(self, payload: dict[str, Any], headers: dict[str, str]) -> dict[str, Any]:
         """
         Post payload to webhook.
 
@@ -227,9 +221,7 @@ class WebhookNotifier(BaseNotifier):
         )
 
         try:
-            with urlopen(
-                request, timeout=self._webhook_config.timeout_seconds
-            ) as response:
+            with urlopen(request, timeout=self._webhook_config.timeout_seconds) as response:
                 body = response.read().decode("utf-8")
                 return {
                     "code": response.status,

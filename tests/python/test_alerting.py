@@ -311,9 +311,7 @@ class TestBaseNotifier:
         """Test batch sending."""
         config = NotifierConfig(name="test", batch_size=2)
         notifier = ConcreteNotifier(config)
-        events = [
-            AlertEvent(title=f"Event {i}", message="Msg") for i in range(5)
-        ]
+        events = [AlertEvent(title=f"Event {i}", message="Msg") for i in range(5)]
 
         results = notifier.send_batch(events)
 
@@ -417,9 +415,7 @@ class TestSlackNotifier:
         assert len(errors) == 0
 
     @patch("sentinel_ml.alerting.slack.urlopen")
-    def test_send_success(
-        self, mock_urlopen: Mock, sample_event: AlertEvent
-    ) -> None:
+    def test_send_success(self, mock_urlopen: Mock, sample_event: AlertEvent) -> None:
         """Test successful Slack send."""
         mock_response = MagicMock()
         mock_response.read.return_value = b"ok"
@@ -1172,20 +1168,26 @@ class TestAlertingIntegration:
         router.register_notifier(webhook_notifier)
 
         # Add rules
-        router.add_rule(RoutingRule(
-            name="critical-all",
-            notifiers=["slack", "email"],
-            priority=[AlertPriority.CRITICAL],
-        ))
-        router.add_rule(RoutingRule(
-            name="high-slack",
-            notifiers=["slack"],
-            priority=[AlertPriority.HIGH],
-        ))
-        router.add_rule(RoutingRule(
-            name="webhook-all",
-            notifiers=["webhook"],
-        ))
+        router.add_rule(
+            RoutingRule(
+                name="critical-all",
+                notifiers=["slack", "email"],
+                priority=[AlertPriority.CRITICAL],
+            )
+        )
+        router.add_rule(
+            RoutingRule(
+                name="high-slack",
+                notifiers=["slack"],
+                priority=[AlertPriority.HIGH],
+            )
+        )
+        router.add_rule(
+            RoutingRule(
+                name="webhook-all",
+                notifiers=["webhook"],
+            )
+        )
 
         # Route events
         critical = AlertEvent(

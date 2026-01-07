@@ -20,27 +20,27 @@ from pathlib import Path
 
 # ANSI Colors for terminal output
 class Color:
-    RED = '\033[91m'
-    GREEN = '\033[92m'
-    YELLOW = '\033[93m'
-    BLUE = '\033[94m'
-    MAGENTA = '\033[95m'
-    CYAN = '\033[96m'
-    WHITE = '\033[97m'
-    BOLD = '\033[1m'
-    DIM = '\033[2m'
-    END = '\033[0m'
+    RED = "\033[91m"
+    GREEN = "\033[92m"
+    YELLOW = "\033[93m"
+    BLUE = "\033[94m"
+    MAGENTA = "\033[95m"
+    CYAN = "\033[96m"
+    WHITE = "\033[97m"
+    BOLD = "\033[1m"
+    DIM = "\033[2m"
+    END = "\033[0m"
 
 
 def print_header(text: str):
-    print(f"\n{Color.BOLD}{Color.CYAN}{'='*70}")
+    print(f"\n{Color.BOLD}{Color.CYAN}{'=' * 70}")
     print(f"{text}")
-    print(f"{'='*70}{Color.END}\n")
+    print(f"{'=' * 70}{Color.END}\n")
 
 
 def print_subheader(text: str):
     print(f"\n{Color.BOLD}{Color.YELLOW}{text}{Color.END}")
-    print(f"{Color.YELLOW}{'-'*50}{Color.END}")
+    print(f"{Color.YELLOW}{'-' * 50}{Color.END}")
 
 
 def print_success(text: str):
@@ -52,7 +52,9 @@ def print_fail(text: str):
 
 
 def print_novel(text: str, score: float, reason: str):
-    print(f"  {Color.RED}{Color.BOLD}[NOVEL]{Color.END} {Color.YELLOW}score:{score:.2f}{Color.END} {text}")
+    print(
+        f"  {Color.RED}{Color.BOLD}[NOVEL]{Color.END} {Color.YELLOW}score:{score:.2f}{Color.END} {text}"
+    )
     print(f"          {Color.CYAN}{reason}{Color.END}")
 
 
@@ -68,11 +70,12 @@ def print_info(text: str):
 # LOAD LOGS FROM JSONL FILE
 # =============================================================================
 
+
 def load_logs(filepath: str) -> dict:
     """Load and categorize logs from JSONL file."""
     logs = {"normal": [], "known_attack": [], "novel_attack": []}
 
-    with Path(filepath).open(encoding='utf-8') as f:
+    with Path(filepath).open(encoding="utf-8") as f:
         for line in f:
             line = line.strip()
             if not line:
@@ -103,6 +106,7 @@ SECURITY_REGEX_RULES = [
     (r"curl\s+.*\|\s*bash|wget\s+.*\|\s*sh", "Remote Code Execution"),
 ]
 
+
 def regex_detect(log: str) -> tuple[bool, str | None]:
     """Traditional regex-based detection."""
     for pattern, threat_name in SECURITY_REGEX_RULES:
@@ -117,11 +121,19 @@ def regex_detect(log: str) -> tuple[bool, str | None]:
 
 # Suspicious indicators that ML would learn are "different from baseline"
 NOVELTY_INDICATORS = [
-    ("telemetry.analytics-cdn.net", 0.95, "Outbound connection to unknown external domain - not in baseline traffic"),
+    (
+        "telemetry.analytics-cdn.net",
+        0.95,
+        "Outbound connection to unknown external domain - not in baseline traffic",
+    ),
     ("AWS_ACCESS_KEY_ID", 0.92, "Environment variable enumeration - scanning for credentials"),
     ("AWS_SECRET_ACCESS_KEY", 0.92, "Environment variable enumeration - scanning for credentials"),
     ("lodash-utils", 0.88, "Unknown module initialization - not in dependency manifest"),
-    ("169.254.169.254", 0.98, "SSRF to cloud metadata endpoint - internal IP accessed from application layer"),
+    (
+        "169.254.169.254",
+        0.98,
+        "SSRF to cloud metadata endpoint - internal IP accessed from application layer",
+    ),
     ("legacy_whitelist", 0.85, "Rate limiter bypass - security control circumvention"),
     ("/v1/oauth/token", 0.75, "Deprecated auth endpoint - unusual traffic pattern"),
     ("/proc/1/cgroup", 0.90, "Container escape recon - probing container boundaries"),
@@ -131,6 +143,7 @@ NOVELTY_INDICATORS = [
     ("/host/var/log", 0.87, "Host filesystem mount - container escape attempt"),
     ("mobile-app-2019", 0.70, "Legacy client ID - deprecated integration"),
 ]
+
 
 def ml_detect(log: str, baseline_count: int = 0) -> tuple[bool, float, str]:  # noqa: ARG001
     """
@@ -191,6 +204,7 @@ def categorize_novel_attacks(logs: list[str]) -> dict[str, list[str]]:
 # MAIN DEMO
 # =============================================================================
 
+
 def main():
     # Find the demo_logs.jsonl file
     script_dir = Path(__file__).parent
@@ -206,10 +220,16 @@ def main():
 
     print_header("SENTINEL-LOG-AI: Why ML Beats Regex for Log Analysis")
 
-    print(f"{Color.WHITE}Loaded {Color.CYAN}{total_logs}{Color.WHITE} logs from {Color.CYAN}demo_logs.jsonl{Color.END}")
+    print(
+        f"{Color.WHITE}Loaded {Color.CYAN}{total_logs}{Color.WHITE} logs from {Color.CYAN}demo_logs.jsonl{Color.END}"
+    )
     print(f"  {Color.GREEN}{len(logs['normal'])}{Color.END} normal production logs (baseline)")
-    print(f"  {Color.YELLOW}{len(logs['known_attack'])}{Color.END} known attacks (SQL injection, XSS, etc.)")
-    print(f"  {Color.RED}{len(logs['novel_attack'])}{Color.END} novel attacks (supply chain, SSRF, etc.)")
+    print(
+        f"  {Color.YELLOW}{len(logs['known_attack'])}{Color.END} known attacks (SQL injection, XSS, etc.)"
+    )
+    print(
+        f"  {Color.RED}{len(logs['novel_attack'])}{Color.END} novel attacks (supply chain, SSRF, etc.)"
+    )
 
     print(f"""
 {Color.WHITE}This demo shows:{Color.END}
@@ -226,19 +246,31 @@ def main():
     # =========================================================================
     print_header("PART 1: Normal Production Logs (ML Learns This as Baseline)")
 
-    print(f"{Color.WHITE}Sample of {len(logs['normal'])} normal logs from your production system:{Color.END}\n")
+    print(
+        f"{Color.WHITE}Sample of {len(logs['normal'])} normal logs from your production system:{Color.END}\n"
+    )
 
-    for i, log in enumerate(logs['normal'][:8], 1):
+    for i, log in enumerate(logs["normal"][:8], 1):
         data = json.loads(log)
         msg = data.get("msg", "")[:65]
         level = data.get("level", "info")
         component = data.get("component", data.get("service", data.get("source", "system")))
 
-        level_color = Color.GREEN if level == "info" else Color.YELLOW if level in ("warn", "debug") else Color.RED
-        print(f"  {Color.DIM}[{i:02d}]{Color.END} {level_color}[{level:5}]{Color.END} {Color.CYAN}[{component}]{Color.END} {msg}...")
+        level_color = (
+            Color.GREEN
+            if level == "info"
+            else Color.YELLOW
+            if level in ("warn", "debug")
+            else Color.RED
+        )
+        print(
+            f"  {Color.DIM}[{i:02d}]{Color.END} {level_color}[{level:5}]{Color.END} {Color.CYAN}[{component}]{Color.END} {msg}..."
+        )
 
     print(f"\n  {Color.DIM}... and {len(logs['normal']) - 8} more normal logs{Color.END}")
-    print(f"\n{Color.BLUE}The ML model learns these patterns as 'normal'. Anything different = investigate.{Color.END}")
+    print(
+        f"\n{Color.BLUE}The ML model learns these patterns as 'normal'. Anything different = investigate.{Color.END}"
+    )
 
     input(f"\n{Color.YELLOW}Press Enter to test regex detection...{Color.END}")
 
@@ -250,7 +282,7 @@ def main():
     print(f"{Color.WHITE}Testing {len(logs['known_attack'])} known attack patterns...{Color.END}\n")
 
     regex_known_caught = 0
-    for log in logs['known_attack']:
+    for log in logs["known_attack"]:
         detected, threat = regex_detect(log)
         msg = json.loads(log).get("msg", "")[:55]
         if detected:
@@ -259,8 +291,12 @@ def main():
         else:
             print_fail(f"{msg}...")
 
-    print(f"\n{Color.GREEN}Regex Result: {regex_known_caught}/{len(logs['known_attack'])} known attacks caught{Color.END}")
-    print(f"{Color.WHITE}These have {Color.BOLD}obvious signatures{Color.END}: SELECT, DROP TABLE, <script>, ../../../{Color.END}")
+    print(
+        f"\n{Color.GREEN}Regex Result: {regex_known_caught}/{len(logs['known_attack'])} known attacks caught{Color.END}"
+    )
+    print(
+        f"{Color.WHITE}These have {Color.BOLD}obvious signatures{Color.END}: SELECT, DROP TABLE, <script>, ../../../{Color.END}"
+    )
 
     input(f"\n{Color.YELLOW}Press Enter to see what regex MISSES...{Color.END}")
 
@@ -270,9 +306,11 @@ def main():
     print_header("PART 3: Regex Detection on Novel Attacks")
 
     print(f"{Color.WHITE}Testing {len(logs['novel_attack'])} novel attack patterns...{Color.END}")
-    print(f"{Color.DIM}(These are real-world attacks that bypass signature-based detection){Color.END}\n")
+    print(
+        f"{Color.DIM}(These are real-world attacks that bypass signature-based detection){Color.END}\n"
+    )
 
-    novel_categories = categorize_novel_attacks(logs['novel_attack'])
+    novel_categories = categorize_novel_attacks(logs["novel_attack"])
     regex_novel_caught = 0
 
     for category, category_logs in novel_categories.items():
@@ -286,8 +324,12 @@ def main():
             else:
                 print_fail(f"{msg}...")
 
-    print(f"\n{Color.RED}{Color.BOLD}Regex Result: {regex_novel_caught}/{len(logs['novel_attack'])} novel attacks caught ({100*regex_novel_caught/len(logs['novel_attack']):.0f}%){Color.END}")
-    print(f"{Color.RED}These logs have {Color.BOLD}NO obvious signatures{Color.END} - they look like normal operations!{Color.END}")
+    print(
+        f"\n{Color.RED}{Color.BOLD}Regex Result: {regex_novel_caught}/{len(logs['novel_attack'])} novel attacks caught ({100 * regex_novel_caught / len(logs['novel_attack']):.0f}%){Color.END}"
+    )
+    print(
+        f"{Color.RED}These logs have {Color.BOLD}NO obvious signatures{Color.END} - they look like normal operations!{Color.END}"
+    )
 
     input(f"\n{Color.YELLOW}Press Enter to see ML detection...{Color.END}")
 
@@ -311,7 +353,7 @@ def main():
     input(f"{Color.YELLOW}Press Enter to see ML results...{Color.END}")
 
     ml_caught = 0
-    baseline_size = len(logs['normal'])
+    baseline_size = len(logs["normal"])
 
     for category, category_logs in novel_categories.items():
         print(f"\n{Color.MAGENTA}{Color.BOLD}{category}:{Color.END}")
@@ -324,7 +366,9 @@ def main():
             else:
                 print_normal(f"{msg}...", score)
 
-    print(f"\n{Color.GREEN}{Color.BOLD}ML Result: {ml_caught}/{len(logs['novel_attack'])} novel attacks detected ({100*ml_caught/len(logs['novel_attack']):.0f}%){Color.END}")
+    print(
+        f"\n{Color.GREEN}{Color.BOLD}ML Result: {ml_caught}/{len(logs['novel_attack'])} novel attacks detected ({100 * ml_caught / len(logs['novel_attack']):.0f}%){Color.END}"
+    )
 
     # =========================================================================
     # PART 5: Summary
@@ -337,9 +381,9 @@ def main():
                         {Color.CYAN}Known Attacks{Color.END}            {Color.MAGENTA}Novel Attacks{Color.END}
                         (SQL, XSS, Path Trav.)   (Supply chain, SSRF, etc.)
 
-    {Color.YELLOW}Regex{Color.END}               {Color.GREEN}{regex_known_caught}/{len(logs['known_attack'])} ({100*regex_known_caught/len(logs['known_attack']):.0f}%){Color.END}               {Color.RED}{regex_novel_caught}/{len(logs['novel_attack'])} ({100*regex_novel_caught/len(logs['novel_attack']):.0f}%){Color.END}
+    {Color.YELLOW}Regex{Color.END}               {Color.GREEN}{regex_known_caught}/{len(logs["known_attack"])} ({100 * regex_known_caught / len(logs["known_attack"]):.0f}%){Color.END}               {Color.RED}{regex_novel_caught}/{len(logs["novel_attack"])} ({100 * regex_novel_caught / len(logs["novel_attack"]):.0f}%){Color.END}
 
-    {Color.YELLOW}ML Novelty{Color.END}          {Color.GREEN}{len(logs['known_attack'])}/{len(logs['known_attack'])} (100%){Color.END}              {Color.GREEN}{ml_caught}/{len(logs['novel_attack'])} ({100*ml_caught/len(logs['novel_attack']):.0f}%){Color.END}
+    {Color.YELLOW}ML Novelty{Color.END}          {Color.GREEN}{len(logs["known_attack"])}/{len(logs["known_attack"])} (100%){Color.END}              {Color.GREEN}{ml_caught}/{len(logs["novel_attack"])} ({100 * ml_caught / len(logs["novel_attack"]):.0f}%){Color.END}
 
 
 {Color.BOLD}The Key Difference:{Color.END}

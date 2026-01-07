@@ -126,9 +126,7 @@ class SlackNotifier(BaseNotifier):
         mentions = ""
         if event.priority == AlertPriority.CRITICAL:
             user_mentions = [f"<@{uid}>" for uid in self._slack_config.mention_users]
-            group_mentions = [
-                f"<!subteam^{gid}>" for gid in self._slack_config.mention_groups
-            ]
+            group_mentions = [f"<!subteam^{gid}>" for gid in self._slack_config.mention_groups]
             all_mentions = user_mentions + group_mentions
             if all_mentions:
                 mentions = " ".join(all_mentions) + " "
@@ -148,19 +146,23 @@ class SlackNotifier(BaseNotifier):
         ]
 
         if event.tags:
-            fields.append({
-                "title": "Tags",
-                "value": ", ".join(event.tags),
-                "short": True,
-            })
+            fields.append(
+                {
+                    "title": "Tags",
+                    "value": ", ".join(event.tags),
+                    "short": True,
+                }
+            )
 
         if self._slack_config.include_metadata and event.metadata:
             for key, value in list(event.metadata.items())[:5]:
-                fields.append({
-                    "title": key,
-                    "value": str(value)[:100],
-                    "short": True,
-                })
+                fields.append(
+                    {
+                        "title": key,
+                        "value": str(value)[:100],
+                        "short": True,
+                    }
+                )
 
         payload: dict[str, Any] = {
             "attachments": [
@@ -214,9 +216,7 @@ class SlackNotifier(BaseNotifier):
         )
 
         try:
-            with urlopen(
-                request, timeout=self._slack_config.timeout_seconds
-            ) as response:
+            with urlopen(request, timeout=self._slack_config.timeout_seconds) as response:
                 return response.read().decode("utf-8")
         except HTTPError as e:
             self._logger.error(
@@ -238,10 +238,9 @@ class SlackNotifier(BaseNotifier):
 
         if not self._slack_config.webhook_url:
             errors.append("Slack webhook URL is required")
-        elif (
-            not self._slack_config.webhook_url.startswith("https://hooks.slack.com/")
-            and not self._slack_config.webhook_url.startswith("https://")
-        ):
+        elif not self._slack_config.webhook_url.startswith(
+            "https://hooks.slack.com/"
+        ) and not self._slack_config.webhook_url.startswith("https://"):
             errors.append("Slack webhook URL must use HTTPS")
 
         return errors
