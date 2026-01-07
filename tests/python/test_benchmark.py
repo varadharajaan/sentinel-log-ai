@@ -7,8 +7,6 @@ Tests metrics, profiler, runner, and datasets components.
 from __future__ import annotations
 
 import time
-from typing import TYPE_CHECKING
-from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -22,8 +20,8 @@ from sentinel_ml.benchmark.datasets import (
     generate_test_logs,
 )
 from sentinel_ml.benchmark.metrics import (
-    MetricsCollector,
     MemoryTracker,
+    MetricsCollector,
     ThroughputMetrics,
     TimingMetrics,
 )
@@ -36,14 +34,10 @@ from sentinel_ml.benchmark.profiler import (
 from sentinel_ml.benchmark.runner import (
     BenchmarkConfig,
     BenchmarkResult,
-    BenchmarkRunner,
     BenchmarkStatus,
     BenchmarkSuite,
     FunctionBenchmark,
 )
-
-if TYPE_CHECKING:
-    pass
 
 
 class TestTimingMetrics:
@@ -388,8 +382,8 @@ class TestMemoryProfiler:
         """Test track context manager."""
         profiler = MemoryProfiler("test")
 
-        with profiler.track("operation") as before:
-            _ = [i for i in range(1000)]
+        with profiler.track("operation"):
+            _ = list(range(1000))
 
         snapshots = profiler.get_all_snapshots()
         assert len(snapshots) == 2

@@ -423,12 +423,8 @@ class MetricsCollector:
             "name": self.name,
             "total_duration_seconds": round(self.total_duration, 2),
             "metadata": self._metadata,
-            "timing": {
-                name: m.to_dict() for name, m in self._timing_metrics.items()
-            },
-            "throughput": {
-                name: m.to_dict() for name, m in self._throughput_metrics.items()
-            },
+            "timing": {name: m.to_dict() for name, m in self._timing_metrics.items()},
+            "throughput": {name: m.to_dict() for name, m in self._throughput_metrics.items()},
             "memory": self._memory_tracker.get_summary(),
         }
 

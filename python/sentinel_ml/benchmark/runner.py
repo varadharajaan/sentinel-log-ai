@@ -430,9 +430,7 @@ class BenchmarkSuite:
 
     def get_summary(self) -> dict[str, Any]:
         """Get suite summary."""
-        completed = sum(
-            1 for r in self._results if r.status == BenchmarkStatus.COMPLETED
-        )
+        completed = sum(1 for r in self._results if r.status == BenchmarkStatus.COMPLETED)
         failed = sum(1 for r in self._results if r.status == BenchmarkStatus.FAILED)
 
         return {

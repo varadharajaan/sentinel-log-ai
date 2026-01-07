@@ -164,14 +164,10 @@ class DatasetGenerator:
         "/api/v1/health",
         "/api/v1/metrics",
     ]
-    HTTP_STATUS_CODES: ClassVar[list[int]] = [
-        200, 201, 204, 400, 401, 403, 404, 500, 502, 503
-    ]
+    HTTP_STATUS_CODES: ClassVar[list[int]] = [200, 201, 204, 400, 401, 403, 404, 500, 502, 503]
     DB_OPERATIONS: ClassVar[list[str]] = ["SELECT", "INSERT", "UPDATE", "DELETE"]
     DB_TABLES: ClassVar[list[str]] = ["users", "orders", "products", "sessions", "logs"]
-    AUTH_ACTIONS: ClassVar[list[str]] = [
-        "login", "logout", "token_refresh", "password_reset"
-    ]
+    AUTH_ACTIONS: ClassVar[list[str]] = ["login", "logout", "token_refresh", "password_reset"]
     ERROR_TYPES: ClassVar[list[str]] = [
         "ConnectionError",
         "TimeoutError",
@@ -217,9 +213,7 @@ class DatasetGenerator:
     def _random_timestamp(self) -> datetime:
         """Generate random timestamp within configured range."""
         now = datetime.now(timezone.utc)
-        offset = timedelta(
-            seconds=self._rng.randint(0, self.config.time_range_hours * 3600)
-        )
+        offset = timedelta(seconds=self._rng.randint(0, self.config.time_range_hours * 3600))
         return now - offset
 
     def _weighted_choice(self, choices: dict[Any, float]) -> Any:
@@ -236,10 +230,7 @@ class DatasetGenerator:
         duration = self._rng.randint(1, 5000)
         ip = self._random_ip()
 
-        return (
-            f'{method} {path} {status} {duration}ms - {ip} - '
-            f'"{self._random_string(32)}"'
-        )
+        return f'{method} {path} {status} {duration}ms - {ip} - "{self._random_string(32)}"'
 
     def _generate_database_query(self) -> str:
         """Generate database query log message."""
@@ -248,10 +239,7 @@ class DatasetGenerator:
         duration = self._rng.randint(1, 1000)
         rows = self._rng.randint(0, 10000)
 
-        return (
-            f"Query executed: {operation} on {table} - "
-            f"{duration}ms, {rows} rows affected"
-        )
+        return f"Query executed: {operation} on {table} - {duration}ms, {rows} rows affected"
 
     def _generate_auth_event(self) -> str:
         """Generate authentication event log message."""
@@ -263,10 +251,7 @@ class DatasetGenerator:
         success = self._rng.random() > 0.1
         status = "successful" if success else "failed"
 
-        return (
-            f"Auth {action} {status} for user={user} "
-            f"from ip={ip} session={session_id}"
-        )
+        return f"Auth {action} {status} for user={user} from ip={ip} session={session_id}"
 
     def _generate_error_stack(self) -> str:
         """Generate error with stack trace."""
