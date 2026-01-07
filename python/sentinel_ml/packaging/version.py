@@ -17,7 +17,7 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from enum import Enum
 from pathlib import Path
-from typing import Any
+from typing import Any, ClassVar
 
 import structlog
 
@@ -293,7 +293,7 @@ class VersionManager:
         version_files: List of files containing version information.
     """
 
-    VERSION_PATTERNS: dict[str, str] = {
+    VERSION_PATTERNS: ClassVar[dict[str, str]] = {
         "pyproject.toml": r'version\s*=\s*"([^"]+)"',
         "__init__.py": r'__version__\s*=\s*"([^"]+)"',
         "package.json": r'"version"\s*:\s*"([^"]+)"',

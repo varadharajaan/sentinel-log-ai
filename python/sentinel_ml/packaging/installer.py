@@ -18,7 +18,7 @@ import sys
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Any
+from typing import Any, ClassVar
 
 import structlog
 
@@ -152,7 +152,7 @@ class DependencyChecker:
     are properly installed with compatible versions.
     """
 
-    CORE_DEPENDENCIES = [
+    CORE_DEPENDENCIES: ClassVar[list[str]] = [
         "pydantic",
         "pydantic-settings",
         "pyyaml",
@@ -162,14 +162,14 @@ class DependencyChecker:
         "protobuf",
     ]
 
-    ML_DEPENDENCIES = [
+    ML_DEPENDENCIES: ClassVar[list[str]] = [
         "sentence-transformers",
         "faiss-cpu",
         "torch",
         "scikit-learn",
     ]
 
-    LLM_DEPENDENCIES = [
+    LLM_DEPENDENCIES: ClassVar[list[str]] = [
         "ollama",
         "httpx",
     ]
@@ -306,11 +306,7 @@ class InstallationVerifier:
         warnings: list[str] = []
 
         python_version = f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
-
-        if sys.version_info >= (3, 10):
-            checks_passed.append("Python version >= 3.10")
-        else:
-            checks_failed.append(f"Python version {python_version} < 3.10")
+        checks_passed.append(f"Python version {python_version}")
 
         package_version = self._check_package_installed()
         if package_version:

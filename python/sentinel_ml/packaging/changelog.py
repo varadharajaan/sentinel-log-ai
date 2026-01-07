@@ -282,10 +282,7 @@ class ChangelogGenerator:
 
         entries: list[ChangelogEntry] = []
 
-        if from_ref:
-            range_spec = f"{from_ref}..{to_ref}"
-        else:
-            range_spec = to_ref
+        range_spec = f"{from_ref}..{to_ref}" if from_ref else to_ref
 
         try:
             result = subprocess.run(

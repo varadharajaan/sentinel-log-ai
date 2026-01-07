@@ -21,7 +21,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
 from pathlib import Path
-from typing import Any
+from typing import Any, ClassVar
 
 import structlog
 
@@ -138,7 +138,7 @@ class BuildArtifact:
     def _compute_checksum(path: Path) -> str:
         """Compute SHA-256 checksum of a file."""
         sha256 = hashlib.sha256()
-        with open(path, "rb") as f:
+        with path.open("rb") as f:
             for chunk in iter(lambda: f.read(8192), b""):
                 sha256.update(chunk)
         return sha256.hexdigest()
@@ -229,7 +229,7 @@ class BuildValidator:
     are available before starting a build.
     """
 
-    REQUIRED_TOOLS: dict[BuildTarget, list[str]] = {
+    REQUIRED_TOOLS: ClassVar[dict[BuildTarget, list[str]]] = {
         BuildTarget.PYTHON_WHEEL: ["python", "pip"],
         BuildTarget.PYTHON_SDIST: ["python", "pip"],
         BuildTarget.DOCKER_IMAGE: ["docker"],
@@ -318,14 +318,12 @@ class BuildValidator:
     def get_current_platform(self) -> BuildPlatform:
         """Get the current build platform."""
         system = platform.system().lower()
-        if system == "windows":
-            return BuildPlatform.WINDOWS
-        elif system == "linux":
-            return BuildPlatform.LINUX
-        elif system == "darwin":
-            return BuildPlatform.MACOS
-        else:
-            return BuildPlatform.LINUX
+        platform_map = {
+            "windows": BuildPlatform.WINDOWS,
+            "linux": BuildPlatform.LINUX,
+            "darwin": BuildPlatform.MACOS,
+        }
+        return platform_map.get(system, BuildPlatform.LINUX)
 
 
 class BuildRunner:
@@ -416,7 +414,7 @@ class BuildRunner:
     def _build_wheel(self) -> BuildArtifact | None:
         """Build Python wheel."""
         try:
-            result = subprocess.run(
+            subprocess.run(
                 ["python", "-m", "build", "--wheel", "-o", str(self.config.output_dir)],
                 capture_output=True,
                 text=True,

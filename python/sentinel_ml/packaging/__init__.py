@@ -18,6 +18,8 @@ Design Patterns:
 from sentinel_ml.packaging.build import (
     BuildArtifact,
     BuildConfig,
+    BuildPlatform,
+    BuildRunner,
     BuildTarget,
     BuildValidator,
 )
@@ -26,16 +28,21 @@ from sentinel_ml.packaging.changelog import (
     ChangelogEntryType,
     ChangelogGenerator,
     ChangelogManager,
+    ChangelogRelease,
 )
 from sentinel_ml.packaging.installer import (
     DependencyChecker,
+    DependencyInfo,
+    DependencyStatus,
     InstallationResult,
     InstallationVerifier,
 )
 from sentinel_ml.packaging.release import (
+    Release,
     ReleaseArtifact,
     ReleaseConfig,
     ReleaseManager,
+    ReleaseNotesGenerator,
     ReleaseStatus,
 )
 from sentinel_ml.packaging.version import (
@@ -49,18 +56,25 @@ from sentinel_ml.packaging.version import (
 __all__ = [
     "BuildArtifact",
     "BuildConfig",
+    "BuildPlatform",
+    "BuildRunner",
     "BuildTarget",
     "BuildValidator",
     "ChangelogEntry",
     "ChangelogEntryType",
     "ChangelogGenerator",
     "ChangelogManager",
+    "ChangelogRelease",
     "DependencyChecker",
+    "DependencyInfo",
+    "DependencyStatus",
     "InstallationResult",
     "InstallationVerifier",
+    "Release",
     "ReleaseArtifact",
     "ReleaseConfig",
     "ReleaseManager",
+    "ReleaseNotesGenerator",
     "ReleaseStatus",
     "SemanticVersion",
     "VersionBumpType",

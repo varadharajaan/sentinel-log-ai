@@ -98,6 +98,7 @@ known-first-party = ["sentinel_ml"]
 [tool.ruff.lint.per-file-ignores]
 "tests/**/*" = ["ARG001", "S101"]
 "python/sentinel_ml/generated/**/*" = ["ALL"]
+"python/sentinel_ml/packaging/**/*" = ["TC003"]  # Path used at runtime
 "python/sentinel_ml/logging.py" = ["TC003"]  # MutableMapping used at runtime in function signatures
 
 # ============================================================================
