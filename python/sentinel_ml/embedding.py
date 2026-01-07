@@ -24,7 +24,7 @@ import hashlib
 import time
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, TypeAlias
 
 import numpy as np
 from numpy.typing import NDArray
@@ -41,7 +41,7 @@ if TYPE_CHECKING:
 logger = get_logger(__name__)
 
 # Type alias for embeddings
-EmbeddingArray = NDArray[np.float32]
+EmbeddingArray: TypeAlias = NDArray[np.float32]
 
 
 @dataclass

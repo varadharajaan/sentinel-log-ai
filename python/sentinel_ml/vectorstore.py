@@ -28,7 +28,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, TypeAlias
 
 import numpy as np
 from numpy.typing import NDArray
@@ -45,8 +45,8 @@ if TYPE_CHECKING:
 logger = get_logger(__name__)
 
 # Type aliases
-EmbeddingArray = NDArray[np.float32]
-IndexType = Any  # FAISS index type
+EmbeddingArray: TypeAlias = NDArray[np.float32]
+IndexType: TypeAlias = Any  # FAISS index type
 
 
 class IndexStrategy(str, Enum):
