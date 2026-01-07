@@ -1411,3 +1411,164 @@ sequenceDiagram
 2. **Log Isolation**: Logs stored in JSONL for audit trails
 3. **gRPC Security**: TLS encryption for production
 4. **Error Handling**: No sensitive data in error messages
+
+## Security Architecture (M12)
+
+The security subsystem provides comprehensive data protection:
+
+```mermaid
+graph TB
+    subgraph "Security Module"
+        RED[Redaction Engine]
+        PM[Privacy Manager]
+        ENC[Encryption Store]
+    end
+
+    subgraph "Redaction"
+        PII[PII Detector]
+        REG[Regex Patterns]
+        COMP[Composite Redactor]
+    end
+
+    subgraph "Privacy"
+        POL[Policy Engine]
+        SAN[Sanitizer]
+        OBS[Privacy Observer]
+    end
+
+    subgraph "Encryption"
+        KM[Key Manager]
+        FER[Fernet Provider]
+        STORE[Encrypted Store]
+    end
+
+    RED --> PII
+    PII --> REG
+    REG --> COMP
+
+    PM --> POL
+    PM --> SAN
+    PM --> OBS
+    PM --> RED
+
+    ENC --> KM
+    KM --> FER
+    FER --> STORE
+```
+
+### Redaction Engine
+
+```mermaid
+sequenceDiagram
+    participant Log as Log Text
+    participant RF as RedactorFactory
+    participant RR as RegexRedactor
+    participant PII as PII Patterns
+    participant Out as Redacted Text
+
+    Log->>RF: create(config)
+    RF->>RR: Initialize with patterns
+    RR->>PII: Load 12+ PII patterns
+
+    Log->>RR: redact(text)
+    loop For each PII type
+        RR->>PII: Match pattern
+        alt Match found
+            PII->>RR: Replace with placeholder
+        end
+    end
+    RR->>Out: Return RedactionResult
+```
+
+### Privacy Manager Flow
+
+```mermaid
+sequenceDiagram
+    participant Log as Raw Log
+    participant PM as PrivacyManager
+    participant POL as PolicyEngine
+    participant RED as Redactor
+    participant OUT as SanitizedLog
+
+    Log->>PM: sanitize(log)
+    PM->>POL: Check mode
+    alt NEVER_STORE
+        PM->>OUT: None (discard)
+    else STORE_REDACTED
+        PM->>RED: redact(log)
+        RED-->>PM: RedactionResult
+        PM->>OUT: SanitizedLog
+    else STORE_EMBEDDINGS_ONLY
+        PM->>RED: redact(log)
+        PM->>OUT: Embeddings only
+    end
+```
+
+### Encryption Flow
+
+```mermaid
+sequenceDiagram
+    participant Data as Sensitive Data
+    participant ES as EncryptedStore
+    participant KM as KeyManager
+    participant FP as FernetProvider
+    participant OUT as EncryptedData
+
+    Data->>ES: encrypt(data)
+    ES->>KM: get_active_key()
+    alt No active key
+        KM->>KM: generate_key()
+    end
+    KM-->>ES: EncryptionKey
+    ES->>FP: encrypt(data, key)
+    FP-->>ES: ciphertext
+    ES->>OUT: EncryptedData{ciphertext, key_id, algorithm}
+```
+
+### Security Components
+
+| Component | Purpose | Design Pattern |
+|-----------|---------|----------------|
+| `PIIType` | Enumerate PII categories | Enumeration |
+| `RedactionLevel` | Control redaction strictness | Strategy |
+| `RegexRedactor` | Pattern-based PII detection | Template Method |
+| `CompositeRedactor` | Chain multiple redactors | Composite |
+| `RedactorFactory` | Create configured redactors | Factory |
+| `PrivacyManager` | Enforce privacy policies | Facade |
+| `KeyManager` | Generate and rotate keys | Singleton-like |
+| `EncryptedStore` | Transparent encryption | Decorator |
+
+### PII Types Supported
+
+| Type | Pattern Example | Level Required |
+|------|-----------------|----------------|
+| EMAIL | user@example.com | STANDARD |
+| PHONE | +1-555-123-4567 | STANDARD |
+| SSN | 123-45-6789 | MINIMAL |
+| CREDIT_CARD | 4111-1111-1111-1111 | MINIMAL |
+| IP_ADDRESS | 192.168.1.1 | STANDARD |
+| API_KEY | sk-abc123xyz | STANDARD |
+| PASSWORD | password=secret | STANDARD |
+| USERNAME | username=admin | STRICT |
+| DOB | DOB: 1990-01-15 | STRICT |
+| ADDRESS | 123 Main St | PARANOID |
+
+### Privacy Modes
+
+| Mode | Raw Storage | Embedding Storage | Use Case |
+|------|-------------|-------------------|----------|
+| STORE_ALL | Yes | Yes | Development |
+| STORE_REDACTED | Redacted | Yes | Production |
+| STORE_EMBEDDINGS_ONLY | No | Yes | Privacy-first |
+| NEVER_STORE | No | No | Maximum privacy |
+
+### Encryption Details
+
+- **Algorithm**: Fernet (AES-128-CBC + HMAC-SHA256)
+- **Key Length**: 32 bytes (256 bits)
+- **Key Derivation**: PBKDF2-HMAC-SHA256 (480,000 iterations)
+- **Key Rotation**: Supported, old keys retained for decryption
+
+For detailed security documentation, see:
+- [Threat Model](threat-model.md)
+- [Security Guide](../wiki/Security-Guide.md)

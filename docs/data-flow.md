@@ -940,3 +940,122 @@ flowchart TD
     WORST --> RESPONSE[Build Response]
     RESPONSE --> RETURN[Return Health Status]
 ```
+
+## Phase 7: Security and Privacy
+
+### PII Redaction Flow
+
+```mermaid
+sequenceDiagram
+    participant Log as Raw Log
+    participant RF as RedactorFactory
+    participant RR as RegexRedactor
+    participant Result as RedactionResult
+
+    Log->>RF: create(config)
+    RF->>RR: Initialize(level, patterns)
+    Log->>RR: redact(text)
+    
+    loop For each PII type
+        RR->>RR: Match EMAIL pattern
+        RR->>RR: Match PHONE pattern
+        RR->>RR: Match SSN pattern
+        RR->>RR: Match CREDIT_CARD pattern
+        RR->>RR: Match IP_ADDRESS pattern
+        RR->>RR: Match API_KEY pattern
+    end
+    
+    RR->>Result: Return redacted text + stats
+    Result-->>Log: RedactionResult
+```
+
+### Privacy Sanitization Flow
+
+```mermaid
+flowchart TD
+    LOG[Raw Log] --> PM[Privacy Manager]
+    PM --> MODE{Privacy Mode?}
+    
+    MODE -->|STORE_ALL| STORE[Store As-Is]
+    MODE -->|STORE_REDACTED| REDACT[Redact PII]
+    MODE -->|STORE_EMBEDDINGS_ONLY| EMB_ONLY[Extract Embeddings Only]
+    MODE -->|NEVER_STORE| DISCARD[Discard After Processing]
+    
+    REDACT --> POLICY{Raw Log Policy?}
+    POLICY -->|REDACT_THEN_STORE| SAVE_R[Save Redacted]
+    POLICY -->|HASH_ONLY| HASH[Store Hash Only]
+    POLICY -->|DISCARD| DROP[Drop Raw]
+    
+    STORE --> OUT[SanitizedLog]
+    SAVE_R --> OUT
+    HASH --> OUT
+    DROP --> OUT
+    EMB_ONLY --> OUT
+    DISCARD --> NOTIFY[Notify Observers Only]
+```
+
+### Encryption Flow
+
+```mermaid
+sequenceDiagram
+    participant Data as Sensitive Data
+    participant Store as EncryptedStore
+    participant KM as KeyManager
+    participant Fernet as FernetProvider
+
+    Data->>Store: encrypt(data)
+    Store->>KM: get_active_key()
+    
+    alt No active key
+        KM->>KM: generate_key()
+        KM->>KM: Set as active
+    else Key expired
+        KM->>KM: rotate_key()
+    end
+    
+    KM-->>Store: EncryptionKey
+    Store->>Fernet: encrypt(data, key)
+    Fernet-->>Store: ciphertext + metadata
+    Store-->>Data: EncryptedData
+
+    Note over Data,Fernet: Decryption uses key_id from EncryptedData
+```
+
+### Complete Security Pipeline
+
+```mermaid
+flowchart TD
+    subgraph "Input"
+        RAW[Raw Log with PII]
+    end
+    
+    subgraph "Redaction Layer"
+        R1[Email Redaction]
+        R2[Phone Redaction]
+        R3[SSN Redaction]
+        R4[Credit Card Redaction]
+        R5[IP Address Redaction]
+        R6[API Key Redaction]
+    end
+    
+    subgraph "Privacy Layer"
+        PM[Privacy Manager]
+        POL[Policy Enforcement]
+    end
+    
+    subgraph "Encryption Layer"
+        ENC[At-Rest Encryption]
+        KEY[Key Management]
+    end
+    
+    subgraph "Output"
+        SAFE[Secured Output]
+    end
+    
+    RAW --> R1 --> R2 --> R3 --> R4 --> R5 --> R6
+    R6 --> PM
+    PM --> POL
+    POL --> ENC
+    ENC <--> KEY
+    ENC --> SAFE
+```
