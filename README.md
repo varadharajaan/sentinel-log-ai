@@ -536,8 +536,8 @@ sentinel-log-ai/
 - [x] **M7**: Performance benchmarks & documentation
 - [x] **M8**: Storage & retention policies
 - [x] **M9**: Alerting & integrations
-- [ ] **M10**: Evaluation & quality framework (in progress)
-- [ ] **M11**: Packaging & release
+- [x] **M10**: Evaluation & quality framework
+- [ ] **M11**: Packaging & release (in progress)
 - [ ] **M12**: Security & privacy
 
 ## Contributing
