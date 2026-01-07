@@ -96,9 +96,10 @@ ignore = ["E501", "B008", "B904"]
 known-first-party = ["sentinel_ml"]
 
 [tool.ruff.lint.per-file-ignores]
-"tests/**/*" = ["ARG001", "S101"]
+"tests/**/*" = ["ARG001", "S101", "TC003"]  # TC003: Path used in fixtures
 "python/sentinel_ml/generated/**/*" = ["ALL"]
 "python/sentinel_ml/packaging/**/*" = ["TC003"]  # Path used at runtime
+"python/sentinel_ml/security/**/*" = ["TC003"]  # Path used at runtime
 "python/sentinel_ml/logging.py" = ["TC003"]  # MutableMapping used at runtime in function signatures
 
 # ============================================================================

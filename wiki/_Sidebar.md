@@ -19,6 +19,9 @@
 - [[CLI and UX|CLI-UX]]
 - [[Evaluation and Quality|Evaluation-Guide]]
 
+### Security
+- [[Security Guide|Security-Guide]]
+
 ### Deployment
 - [[Packaging Guide|Packaging-Guide]]
 
