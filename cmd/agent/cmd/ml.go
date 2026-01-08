@@ -22,11 +22,13 @@ import (
 
 var (
 	mlServerAddr string
-	topK         int
-	minSimilarity float64
-	minClusterSize int
+	topK             int
+	minSimilarity    float64
+	minClusterSize   int
 	noveltyThreshold float64
-	timeout      time.Duration
+	explainContext   string
+	explainModel     string
+	timeout          time.Duration
 )
 
 // setupMLCommands configures ML-related commands
@@ -50,6 +52,12 @@ func setupMLCommands() {
 	// Health command flags
 	healthCmd.Flags().StringVar(&mlServerAddr, "ml-server", "localhost:50051", "ML server address")
 	healthCmd.Flags().DurationVar(&timeout, "timeout", 10*time.Second, "Request timeout")
+
+	// Explain command flags
+	explainCmd.Flags().StringVar(&mlServerAddr, "ml-server", "localhost:50051", "ML server address")
+	explainCmd.Flags().StringVar(&explainContext, "context", "", "Additional context for explanation")
+	explainCmd.Flags().StringVar(&explainModel, "model", "llama3.2", "LLM model to use (e.g., llama3.2, mistral)")
+	explainCmd.Flags().DurationVar(&timeout, "timeout", 60*time.Second, "Request timeout")
 }
 
 // searchCmd searches for similar logs
@@ -106,12 +114,28 @@ Examples:
 	RunE: runHealth,
 }
 
+// explainCmd explains logs using LLM
+var explainCmd = &cobra.Command{
+	Use:   "explain <log-file>",
+	Short: "Get LLM explanation for log patterns",
+	Long: `Use a large language model to explain log patterns, identify issues,
+and provide recommendations for resolving problems.
+
+Examples:
+  sentinel-log-ai explain demo/demo_logs.jsonl
+  sentinel-log-ai explain /var/log/syslog --context "production server"
+  sentinel-log-ai explain errors.log --format markdown`,
+	Args: cobra.ExactArgs(1),
+	RunE: runExplain,
+}
+
 func init() {
 	setupMLCommands()
 	rootCmd.AddCommand(searchCmd)
 	rootCmd.AddCommand(clusterCmd)
 	rootCmd.AddCommand(noveltyCmd)
 	rootCmd.AddCommand(healthCmd)
+	rootCmd.AddCommand(explainCmd)
 }
 
 func runSearch(cmd *cobra.Command, args []string) error {
@@ -393,6 +417,78 @@ func runHealth(cmd *cobra.Command, args []string) error {
 			fmt.Println()
 		}
 	}
+
+	return nil
+}
+
+// runExplain runs the explain command
+func runExplain(cmd *cobra.Command, args []string) error {
+	logger, cleanup, err := setupLogging()
+	if err != nil {
+		return err
+	}
+	defer cleanup()
+
+	client, err := createMLClient(logger)
+	if err != nil {
+		return err
+	}
+	defer client.Close()
+
+	// Load logs from file
+	logsPath := args[0]
+	records, err := loadLogs(logsPath)
+	if err != nil {
+		return fmt.Errorf("failed to load logs: %w", err)
+	}
+
+	if len(records) == 0 {
+		fmt.Println("No log records found in file")
+		return nil
+	}
+
+	fmt.Printf("Explaining %d log records...\n\n", len(records))
+
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+
+	result, err := client.Explain(ctx, records, explainContext, explainModel)
+	if err != nil {
+		return fmt.Errorf("explain failed: %w", err)
+	}
+
+	// Display results
+	fmt.Println("=" + strings.Repeat("=", 79))
+	fmt.Println("LOG ANALYSIS EXPLANATION")
+	fmt.Println("=" + strings.Repeat("=", 79))
+
+	fmt.Printf("\nConfidence: %s (Score: %.1f%%)\n", result.Confidence, result.ConfidenceScore*100)
+	if result.ConfidenceReasoning != "" {
+		fmt.Printf("Reasoning: %s\n", result.ConfidenceReasoning)
+	}
+
+	fmt.Println("\n--- Root Cause ---")
+	if result.RootCause != "" {
+		fmt.Println(result.RootCause)
+	} else {
+		fmt.Println("(No root cause identified)")
+	}
+
+	fmt.Println("\n--- Remediation ---")
+	if result.Remediation != "" {
+		fmt.Println(result.Remediation)
+	} else {
+		fmt.Println("(No remediation suggested)")
+	}
+
+	if len(result.NextSteps) > 0 {
+		fmt.Println("\n--- Next Steps ---")
+		for i, step := range result.NextSteps {
+			fmt.Printf("%d. %s\n", i+1, step)
+		}
+	}
+
+	fmt.Println("\n" + strings.Repeat("=", 80))
 
 	return nil
 }

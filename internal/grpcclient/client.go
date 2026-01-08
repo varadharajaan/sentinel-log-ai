@@ -306,6 +306,17 @@ type NoveltyResult struct {
 	Reason            string
 }
 
+// ExplainResult contains the LLM explanation for logs.
+type ExplainResult struct {
+	RootCause           string
+	NextSteps           []string
+	Remediation         string
+	Confidence          string
+	ConfidenceScore     float32
+	ConfidenceReasoning string
+	RawResponse         string
+}
+
 // Search finds similar logs using vector similarity.
 func (c *Client) Search(ctx context.Context, query *models.LogRecord, topK int, minSimilarity float32) ([]SearchResult, error) {
 	if !c.IsConnected() {
@@ -456,6 +467,48 @@ func (c *Client) Health(ctx context.Context, detailed bool) (*HealthResponse, er
 		Healthy:    resp.Healthy,
 		Version:    resp.Version,
 		Components: components,
+	}, nil
+}
+
+// Explain gets an LLM explanation for log records.
+func (c *Client) Explain(ctx context.Context, records []*models.LogRecord, explainContext string, model string) (*ExplainResult, error) {
+	if !c.IsConnected() {
+		if err := c.Connect(ctx); err != nil {
+			return nil, err
+		}
+	}
+
+	protoRecords := make([]*mlpb.LogRecord, 0, len(records))
+	for _, r := range records {
+		protoRecords = append(protoRecords, convertToMLPBRecord(r))
+	}
+
+	req := &mlpb.ExplainRequest{
+		SampleLogs: protoRecords,
+		Context:    explainContext,
+		Model:      model,
+	}
+
+	resp, err := c.mlClient.Explain(ctx, req)
+	if err != nil {
+		c.logger.Error("explain_rpc_failed", zap.Error(err))
+		return nil, fmt.Errorf("explain RPC failed: %w", err)
+	}
+
+	c.logger.Info("explain_completed",
+		zap.Int("record_count", len(records)),
+		zap.String("confidence", resp.Confidence),
+		zap.Float32("confidence_score", resp.ConfidenceScore),
+	)
+
+	return &ExplainResult{
+		RootCause:           resp.RootCause,
+		NextSteps:           resp.NextSteps,
+		Remediation:         resp.Remediation,
+		Confidence:          resp.Confidence,
+		ConfidenceScore:     resp.ConfidenceScore,
+		ConfidenceReasoning: resp.ConfidenceReasoning,
+		RawResponse:         resp.RawResponse,
 	}, nil
 }
 
