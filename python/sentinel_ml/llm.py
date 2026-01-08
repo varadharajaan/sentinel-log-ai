@@ -489,6 +489,178 @@ class OllamaProvider(LLMProvider):
             return False
 
 
+class LlamaCppProvider(LLMProvider):
+    """
+    Embedded LLM provider using llama-cpp-python.
+
+    Runs LLM inference directly in-process without requiring an external server.
+    Downloads and caches models automatically from HuggingFace.
+    """
+
+    # Default models that work well for log analysis
+    DEFAULT_MODELS = {
+        "small": "TheBloke/TinyLlama-1.1B-Chat-v1.0-GGUF",
+        "medium": "TheBloke/Llama-2-7B-Chat-GGUF",
+        "large": "TheBloke/Llama-2-13B-chat-GGUF",
+    }
+
+    def __init__(
+        self,
+        model_path: str | None = None,
+        model_repo: str = "TheBloke/TinyLlama-1.1B-Chat-v1.0-GGUF",
+        model_file: str = "tinyllama-1.1b-chat-v1.0.Q4_K_M.gguf",
+        n_ctx: int = 2048,
+        n_threads: int | None = None,
+        n_gpu_layers: int = 0,
+        verbose: bool = False,
+    ) -> None:
+        """
+        Initialize the llama-cpp provider.
+
+        Args:
+            model_path: Direct path to a GGUF model file. If provided, model_repo/model_file are ignored.
+            model_repo: HuggingFace repo ID to download model from.
+            model_file: Specific GGUF file in the repo.
+            n_ctx: Context window size.
+            n_threads: Number of CPU threads (None = auto).
+            n_gpu_layers: Number of layers to offload to GPU (0 = CPU only).
+            verbose: Enable verbose output from llama.cpp.
+        """
+        self._model_path = model_path
+        self._model_repo = model_repo
+        self._model_file = model_file
+        self._n_ctx = n_ctx
+        self._n_threads = n_threads
+        self._n_gpu_layers = n_gpu_layers
+        self._verbose = verbose
+        self._llm: Any = None
+        self._model_name = model_file if model_path is None else model_path.split("/")[-1]
+
+        logger.info(
+            "llamacpp_provider_initialized",
+            model_repo=model_repo,
+            model_file=model_file,
+            n_ctx=n_ctx,
+            n_gpu_layers=n_gpu_layers,
+        )
+
+    def _load_model(self) -> Any:
+        """Load or return cached model."""
+        if self._llm is not None:
+            return self._llm
+
+        try:
+            from llama_cpp import Llama
+        except ImportError as e:
+            raise LLMError.provider_error(
+                "llama-cpp",
+                "llama-cpp-python not installed. Run: pip install llama-cpp-python",
+            ) from e
+
+        model_path = self._model_path
+        if model_path is None:
+            # Download from HuggingFace Hub
+            try:
+                from huggingface_hub import hf_hub_download
+                logger.info(
+                    "downloading_model",
+                    repo=self._model_repo,
+                    file=self._model_file,
+                )
+                model_path = hf_hub_download(
+                    repo_id=self._model_repo,
+                    filename=self._model_file,
+                )
+            except ImportError:
+                raise LLMError.provider_error(
+                    "llama-cpp",
+                    "huggingface_hub not installed. Run: pip install huggingface_hub",
+                )
+            except Exception as e:
+                raise LLMError.provider_error(
+                    "llama-cpp",
+                    f"Failed to download model: {e}",
+                )
+
+        logger.info("loading_llama_model", model_path=model_path)
+
+        self._llm = Llama(
+            model_path=model_path,
+            n_ctx=self._n_ctx,
+            n_threads=self._n_threads,
+            n_gpu_layers=self._n_gpu_layers,
+            verbose=self._verbose,
+        )
+
+        return self._llm
+
+    @property
+    def name(self) -> str:
+        """Return the provider name."""
+        return "llama-cpp"
+
+    @property
+    def model(self) -> str:
+        """Return the model name."""
+        return self._model_name
+
+    def generate(
+        self,
+        prompt: str,
+        temperature: float = 0.1,
+        max_tokens: int | None = None,
+    ) -> tuple[str, int, int]:
+        """
+        Generate a completion using llama-cpp.
+
+        Args:
+            prompt: The prompt to complete.
+            temperature: Sampling temperature.
+            max_tokens: Maximum tokens to generate.
+
+        Returns:
+            Tuple of (response_text, prompt_tokens, completion_tokens).
+
+        Raises:
+            LLMError: If generation fails.
+        """
+        try:
+            llm = self._load_model()
+
+            response = llm(
+                prompt,
+                max_tokens=max_tokens or 512,
+                temperature=temperature,
+                stop=["</s>", "\n\n\n"],
+            )
+
+            response_text = response["choices"][0]["text"].strip()
+            prompt_tokens = response.get("usage", {}).get("prompt_tokens", 0)
+            completion_tokens = response.get("usage", {}).get("completion_tokens", 0)
+
+            logger.debug(
+                "llamacpp_generation_complete",
+                prompt_tokens=prompt_tokens,
+                completion_tokens=completion_tokens,
+                response_length=len(response_text),
+            )
+
+            return response_text, prompt_tokens, completion_tokens
+
+        except Exception as e:
+            if "LLMError" in type(e).__name__:
+                raise
+            raise LLMError.provider_error("llama-cpp", str(e)) from e
+
+    def is_available(self) -> bool:
+        """Check if llama-cpp is available."""
+        try:
+            from llama_cpp import Llama  # noqa: F401
+            return True
+        except ImportError:
+            return False
+
+
 class MockLLMProvider(LLMProvider):
     """
     Mock LLM provider for testing.
@@ -644,17 +816,35 @@ class LLMService:
             provider: LLMProvider = MockLLMProvider(model="mock-model")
             logger.info("llm_service_created_with_mock_provider")
         elif config.provider == "ollama":
-            provider = OllamaProvider(
+            ollama_provider = OllamaProvider(
                 model=config.model,
                 base_url=config.base_url,
                 timeout=config.timeout,
                 max_retries=config.max_retries,
             )
-            logger.info(
-                "llm_service_created_with_ollama",
-                model=config.model,
-                base_url=config.base_url,
-            )
+            # Check if Ollama is available, fallback to llama-cpp if not
+            if ollama_provider.is_available():
+                provider = ollama_provider
+                logger.info(
+                    "llm_service_created_with_ollama",
+                    model=config.model,
+                    base_url=config.base_url,
+                )
+            else:
+                logger.warning(
+                    "ollama_not_available_trying_llamacpp",
+                    ollama_url=config.base_url,
+                )
+                llamacpp_provider = LlamaCppProvider()
+                if llamacpp_provider.is_available():
+                    provider = llamacpp_provider
+                    logger.info("llm_service_created_with_llamacpp_fallback")
+                else:
+                    logger.warning("no_llm_provider_available_using_mock")
+                    provider = MockLLMProvider(model="fallback-mock")
+        elif config.provider == "llama-cpp":
+            provider = LlamaCppProvider()
+            logger.info("llm_service_created_with_llamacpp")
         else:
             # Default to mock for unsupported providers
             logger.warning(
@@ -961,31 +1151,66 @@ class LLMService:
         try:
             # Extract JSON from response (handle markdown code blocks)
             json_match = re.search(r"\{.*\}", response_text, re.DOTALL)
-            if not json_match:
-                raise LLMError.invalid_response("No JSON object found in response")
+            if json_match:
+                data = json.loads(json_match.group())
 
-            data = json.loads(json_match.group())
+                # Parse severity
+                severity_str = data.get("severity", "info").lower()
+                try:
+                    severity = Severity(severity_str)
+                except ValueError:
+                    severity = Severity.INFO
 
-            # Parse severity
-            severity_str = data.get("severity", "info").lower()
-            try:
-                severity = Severity(severity_str)
-            except ValueError:
+                return Explanation(
+                    explanation_type=explanation_type,
+                    summary=data.get("summary", ""),
+                    root_cause=data.get("root_cause"),
+                    suggested_actions=data.get("suggested_actions", []),
+                    severity=severity,
+                    confidence=float(data.get("confidence", 0.5)),
+                    related_patterns=data.get("related_patterns", []),
+                    model=model,
+                    prompt_tokens=prompt_tokens,
+                    completion_tokens=completion_tokens,
+                    response_time_seconds=response_time,
+                    metadata=metadata or {},
+                )
+
+            # Fallback: Parse non-JSON response from smaller models
+            logger.warning(
+                "llm_response_not_json_using_fallback",
+                response_length=len(response_text),
+            )
+
+            # Extract severity from text
+            response_lower = response_text.lower()
+            if "critical" in response_lower or "severe" in response_lower:
+                severity = Severity.CRITICAL
+            elif "error" in response_lower or "high" in response_lower:
+                severity = Severity.HIGH
+            elif "warning" in response_lower or "medium" in response_lower:
+                severity = Severity.MEDIUM
+            else:
                 severity = Severity.INFO
+
+            # Use the raw response as the summary
+            summary = response_text.strip()
+            if len(summary) > 500:
+                summary = summary[:500] + "..."
 
             return Explanation(
                 explanation_type=explanation_type,
-                summary=data.get("summary", ""),
-                root_cause=data.get("root_cause"),
-                suggested_actions=data.get("suggested_actions", []),
+                summary=summary,
+                root_cause="See summary for analysis",
+                suggested_actions=["Review the log patterns", "Check related services"],
                 severity=severity,
-                confidence=float(data.get("confidence", 0.5)),
-                related_patterns=data.get("related_patterns", []),
+                confidence=0.5,  # Lower confidence for non-JSON responses
+                related_patterns=[],
                 model=model,
                 prompt_tokens=prompt_tokens,
                 completion_tokens=completion_tokens,
                 response_time_seconds=response_time,
-                metadata=metadata or {},
+                metadata={**(metadata or {}), "fallback_parsing": True},
             )
 
         except json.JSONDecodeError as e:

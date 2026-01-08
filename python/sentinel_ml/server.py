@@ -1263,13 +1263,13 @@ class GRPCMLServiceServicer:
             )
             
             return pb2.ExplainResponse(
-                root_cause=explanation.root_cause or "",
-                next_steps=list(explanation.next_steps) if explanation.next_steps else [],
-                remediation=explanation.remediation or "",
-                confidence=explanation.severity.value if explanation.severity else "MEDIUM",
+                root_cause=explanation.root_cause or explanation.summary or "",
+                next_steps=list(explanation.suggested_actions) if explanation.suggested_actions else [],
+                remediation=explanation.summary or "",
+                confidence=explanation.severity.value.upper() if explanation.severity else "MEDIUM",
                 confidence_score=explanation.confidence or 0.0,
-                confidence_reasoning=explanation.confidence_reasoning or "",
-                raw_response=getattr(explanation, 'raw_response', ""),
+                confidence_reasoning=f"Based on {explanation.model} analysis",
+                raw_response=str(explanation.metadata.get('raw_response', "")),
             )
         except Exception as e:
             logger.error("grpc_explain_error", error=str(e))
