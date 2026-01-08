@@ -27,11 +27,11 @@ import (
 	sentinelerrors "sentinel-log-ai/internal/errors"
 	"sentinel-log-ai/internal/logging"
 	"sentinel-log-ai/internal/models"
+	mlpb "sentinel-log-ai/proto/ml/v1"
 
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/connectivity"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/keepalive"
 	"google.golang.org/grpc/status"
@@ -80,8 +80,8 @@ func DefaultConfig() *Config {
 		MaxRetries:        3,
 		RetryBackoff:      100 * time.Millisecond,
 		MaxBackoff:        5 * time.Second,
-		EnableCompression: true,
-		MaxMessageSize:    16 * 1024 * 1024, // 16MB
+		EnableCompression: false, // Disable compression for compatibility
+		MaxMessageSize:    100 * 1024 * 1024, // 100MB to match server
 		Logger:            logging.L(),
 	}
 }
@@ -144,9 +144,10 @@ type ComponentHealth struct {
 
 // Client is the gRPC client for the ML service.
 type Client struct {
-	config *Config
-	conn   *grpc.ClientConn
-	logger *zap.Logger
+	config    *Config
+	conn      *grpc.ClientConn
+	mlClient  mlpb.MLServiceClient
+	logger    *zap.Logger
 
 	mu     sync.RWMutex
 	closed bool
@@ -193,16 +194,17 @@ func (c *Client) Connect(ctx context.Context) error {
 		return nil // Already connected
 	}
 
-	c.logger.Info("connecting_to_ml_server")
+	c.logger.Info("connecting_to_ml_server",
+		zap.Int("max_message_size", c.config.MaxMessageSize),
+	)
 
-	// Connection options
+	// Connection options - use Dial for better compatibility with message sizes
 	opts := []grpc.DialOption{
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
-		grpc.WithDefaultServiceConfig(`{"loadBalancingPolicy":"round_robin"}`),
 		grpc.WithKeepaliveParams(keepalive.ClientParameters{
-			Time:                30 * time.Second,
-			Timeout:             10 * time.Second,
-			PermitWithoutStream: true,
+			Time:                60 * time.Second, // Less aggressive keepalive
+			Timeout:             20 * time.Second,
+			PermitWithoutStream: false, // Don't ping without active streams
 		}),
 		grpc.WithDefaultCallOptions(
 			grpc.MaxCallRecvMsgSize(c.config.MaxMessageSize),
@@ -210,41 +212,16 @@ func (c *Client) Connect(ctx context.Context) error {
 		),
 	}
 
-	if c.config.EnableCompression {
-		opts = append(opts, grpc.WithDefaultCallOptions(grpc.UseCompressor("gzip")))
-	}
-
-	// Create connection using NewClient (non-blocking by default)
-	conn, err := grpc.NewClient(c.config.Address, opts...)
+	// Create connection using Dial (blocking until connected)
+	//nolint:staticcheck // Using Dial for better message size option support
+	conn, err := grpc.Dial(c.config.Address, opts...)
 	if err != nil {
 		c.logger.Error("connection_failed", zap.Error(err))
 		return sentinelerrors.NewCommConnectionError(c.config.Address, err.Error())
 	}
 
-	// Wait for connection to be ready with timeout
-	connectCtx, cancel := context.WithTimeout(ctx, c.config.ConnectTimeout)
-	defer cancel()
-
-	if !c.config.BlockOnConnect {
-		// Non-blocking: just store the connection
-		c.conn = conn
-		c.logger.Info("connected_to_ml_server")
-		return nil
-	}
-
-	// Blocking: wait for ready state
-	for {
-		state := conn.GetState()
-		if state == connectivity.Ready {
-			break
-		}
-		if !conn.WaitForStateChange(connectCtx, state) {
-			_ = conn.Close()
-			return sentinelerrors.NewCommConnectionError(c.config.Address, "connection timeout")
-		}
-	}
-
 	c.conn = conn
+	c.mlClient = mlpb.NewMLServiceClient(conn)
 	c.logger.Info("connected_to_ml_server")
 
 	return nil
@@ -286,6 +263,13 @@ func (c *Client) GetConnection() *grpc.ClientConn {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 	return c.conn
+}
+
+// GetMLClient returns the MLService gRPC client.
+func (c *Client) GetMLClient() mlpb.MLServiceClient {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	return c.mlClient
 }
 
 // withRetry executes a function with retry logic.
@@ -436,24 +420,69 @@ func (h *BatchHandler) HandleBatch(ctx context.Context, batch []*models.LogRecor
 		zap.Int("batch_size", len(batch)),
 	)
 
-	// Convert records to proto format
-	protoRecords := make([]*LogRecord, 0, len(batch))
+	// Convert records to proto format for Embed request
+	protoRecords := make([]*mlpb.LogRecord, 0, len(batch))
 	for _, record := range batch {
 		if record != nil {
-			protoRecords = append(protoRecords, ConvertToProtoRecord(record))
+			protoRecords = append(protoRecords, convertToMLPBRecord(record))
 		}
 	}
 
-	// In a real implementation, this would call the gRPC service
-	// For now, we simulate success
-	processed := len(protoRecords)
+	// Call the gRPC Embed method
+	mlClient := h.client.GetMLClient()
+	if mlClient == nil {
+		return 0, fmt.Errorf("ML client not initialized")
+	}
 
+	req := &mlpb.EmbedRequest{
+		Records:  protoRecords,
+		UseCache: true,
+	}
+
+	resp, err := mlClient.Embed(ctx, req)
+	if err != nil {
+		h.logger.Error("embed_rpc_failed", zap.Error(err))
+		return 0, fmt.Errorf("embed RPC failed: %w", err)
+	}
+
+	processed := len(protoRecords)
 	duration := time.Since(startTime)
 	h.logger.Info("batch_sent_to_ml_server",
 		zap.Int("batch_size", len(batch)),
 		zap.Int("processed", processed),
+		zap.Int32("embedding_dim", resp.EmbeddingDim),
+		zap.Int32("cache_hits", resp.CacheHits),
 		zap.Duration("duration", duration),
 	)
 
 	return processed, nil
+}
+
+// convertToMLPBRecord converts a models.LogRecord to the proto LogRecord.
+func convertToMLPBRecord(record *models.LogRecord) *mlpb.LogRecord {
+	if record == nil {
+		return nil
+	}
+
+	var attrsJSON string
+	if record.Attrs != nil {
+		if data, err := json.Marshal(record.Attrs); err == nil {
+			attrsJSON = string(data)
+		}
+	}
+
+	var ts *timestamppb.Timestamp
+	if record.Timestamp != nil && !record.Timestamp.IsZero() {
+		ts = timestamppb.New(*record.Timestamp)
+	}
+
+	return &mlpb.LogRecord{
+		Id:         "", // ID is assigned by the ML service
+		Message:    record.Message,
+		Normalized: record.Normalized,
+		Level:      record.Level,
+		Source:     record.Source,
+		Timestamp:  ts,
+		AttrsJson:  attrsJSON,
+	}
 }

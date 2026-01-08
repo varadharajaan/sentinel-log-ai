@@ -118,10 +118,11 @@ func (r *IngestRunner) Run(ctx context.Context) error {
 		grpcCfg := &grpcclient.Config{
 			Address:        r.options.MLServerAddr,
 			ConnectTimeout: r.options.ConnectTimeout,
-			RequestTimeout: 30 * time.Second,
+			RequestTimeout: 120 * time.Second, // 2 minutes for initial model loading
 			MaxRetries:     3,
 			RetryBackoff:   100 * time.Millisecond,
 			MaxBackoff:     5 * time.Second,
+			MaxMessageSize: 100 * 1024 * 1024, // 100MB to support large batches
 			Logger:         r.logger,
 		}
 

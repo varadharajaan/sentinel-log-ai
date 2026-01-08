@@ -267,11 +267,13 @@ class SentenceTransformerProvider(EmbeddingProvider):
             model_name: HuggingFace model name or path.
             device: Device to use (cpu, cuda, mps).
         """
+        import threading
         self._model_name = model_name
         self._device = device
         self._model: Any = None
         self._embedding_dim: int | None = None
         self._load_time: float = 0.0
+        self._lock = threading.Lock()
 
         logger.info(
             "sentence_transformer_provider_initialized",
@@ -280,38 +282,43 @@ class SentenceTransformerProvider(EmbeddingProvider):
         )
 
     def _ensure_model_loaded(self) -> None:
-        """Load the model if not already loaded."""
+        """Load the model if not already loaded (thread-safe)."""
         if self._model is not None:
             return
 
-        logger.info("loading_embedding_model", model_name=self._model_name)
-        start_time = time.time()
+        with self._lock:
+            # Double-check after acquiring lock
+            if self._model is not None:
+                return
 
-        try:
-            from sentence_transformers import SentenceTransformer
+            logger.info("loading_embedding_model", model_name=self._model_name)
+            start_time = time.time()
 
-            self._model = SentenceTransformer(self._model_name, device=self._device)
-            self._embedding_dim = self._model.get_sentence_embedding_dimension()
-            self._load_time = time.time() - start_time
+            try:
+                from sentence_transformers import SentenceTransformer
 
-            logger.info(
-                "embedding_model_loaded",
-                model_name=self._model_name,
-                embedding_dim=self._embedding_dim,
-                device=self._device,
-                load_time_seconds=round(self._load_time, 2),
-            )
-        except ImportError as e:
-            msg = "sentence-transformers not installed. Install with: pip install sentinel-log-ai-ml[ml]"
-            logger.error("embedding_model_import_error", error=msg)
-            raise ProcessingError.model_load_failed(self._model_name, msg) from e
-        except Exception as e:
-            logger.error(
-                "embedding_model_load_failed",
-                model_name=self._model_name,
-                error=str(e),
-            )
-            raise ProcessingError.model_load_failed(self._model_name, str(e)) from e
+                self._model = SentenceTransformer(self._model_name, device=self._device)
+                self._embedding_dim = self._model.get_sentence_embedding_dimension()
+                self._load_time = time.time() - start_time
+
+                logger.info(
+                    "embedding_model_loaded",
+                    model_name=self._model_name,
+                    embedding_dim=self._embedding_dim,
+                    device=self._device,
+                    load_time_seconds=round(self._load_time, 2),
+                )
+            except ImportError as e:
+                msg = "sentence-transformers not installed. Install with: pip install sentinel-log-ai-ml[ml]"
+                logger.error("embedding_model_import_error", error=msg)
+                raise ProcessingError.model_load_failed(self._model_name, msg) from e
+            except Exception as e:
+                logger.error(
+                    "embedding_model_load_failed",
+                    model_name=self._model_name,
+                    error=str(e),
+                )
+                raise ProcessingError.model_load_failed(self._model_name, str(e)) from e
 
     @property
     def embedding_dim(self) -> int:
