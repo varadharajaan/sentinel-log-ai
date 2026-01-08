@@ -272,6 +272,220 @@ func (c *Client) GetMLClient() mlpb.MLServiceClient {
 	return c.mlClient
 }
 
+// SearchResult represents a single similar log match.
+type SearchResult struct {
+	Record     *models.LogRecord
+	Similarity float32
+	Distance   float32
+	ClusterID  string
+}
+
+// ClusterSummary describes a log cluster.
+type ClusterSummary struct {
+	ClusterID      string
+	Size           int32
+	Representative string
+	Keywords       []string
+	Cohesion       float32
+	IsNew          bool
+}
+
+// ClusterResult contains clustering results.
+type ClusterResult struct {
+	Clusters       []ClusterSummary
+	NoiseCount     int32
+	TotalProcessed int32
+}
+
+// NoveltyResult indicates if a log is novel.
+type NoveltyResult struct {
+	IsNovel           bool
+	NoveltyScore      float32
+	ClosestClusterID  string
+	DistanceToCluster float32
+	Reason            string
+}
+
+// Search finds similar logs using vector similarity.
+func (c *Client) Search(ctx context.Context, query *models.LogRecord, topK int, minSimilarity float32) ([]SearchResult, error) {
+	if !c.IsConnected() {
+		if err := c.Connect(ctx); err != nil {
+			return nil, err
+		}
+	}
+
+	req := &mlpb.SearchRequest{
+		Query:         convertToMLPBRecord(query),
+		TopK:          int32(topK),
+		MinSimilarity: minSimilarity,
+	}
+
+	resp, err := c.mlClient.Search(ctx, req)
+	if err != nil {
+		c.logger.Error("search_rpc_failed", zap.Error(err))
+		return nil, fmt.Errorf("search RPC failed: %w", err)
+	}
+
+	results := make([]SearchResult, 0, len(resp.Results))
+	for _, r := range resp.Results {
+		results = append(results, SearchResult{
+			Record:     convertFromMLPBRecord(r.Record),
+			Similarity: r.Similarity,
+			Distance:   r.Distance,
+			ClusterID:  r.ClusterId,
+		})
+	}
+
+	c.logger.Info("search_completed", zap.Int("results", len(results)))
+	return results, nil
+}
+
+// Cluster groups similar logs and returns cluster summaries.
+func (c *Client) Cluster(ctx context.Context, records []*models.LogRecord, minClusterSize int, persist bool) (*ClusterResult, error) {
+	if !c.IsConnected() {
+		if err := c.Connect(ctx); err != nil {
+			return nil, err
+		}
+	}
+
+	protoRecords := make([]*mlpb.LogRecord, 0, len(records))
+	for _, r := range records {
+		if r != nil {
+			protoRecords = append(protoRecords, convertToMLPBRecord(r))
+		}
+	}
+
+	req := &mlpb.ClusterRequest{
+		Records:        protoRecords,
+		MinClusterSize: int32(minClusterSize),
+		Persist:        persist,
+	}
+
+	resp, err := c.mlClient.Cluster(ctx, req)
+	if err != nil {
+		c.logger.Error("cluster_rpc_failed", zap.Error(err))
+		return nil, fmt.Errorf("cluster RPC failed: %w", err)
+	}
+
+	clusters := make([]ClusterSummary, 0, len(resp.Clusters))
+	for _, cl := range resp.Clusters {
+		clusters = append(clusters, ClusterSummary{
+			ClusterID:      cl.ClusterId,
+			Size:           cl.Size,
+			Representative: cl.Representative,
+			Keywords:       cl.Keywords,
+			Cohesion:       cl.Cohesion,
+			IsNew:          cl.IsNew,
+		})
+	}
+
+	c.logger.Info("cluster_completed",
+		zap.Int("clusters", len(clusters)),
+		zap.Int32("noise_count", resp.NoiseCount),
+		zap.Int32("total_processed", resp.TotalProcessed),
+	)
+
+	return &ClusterResult{
+		Clusters:       clusters,
+		NoiseCount:     resp.NoiseCount,
+		TotalProcessed: resp.TotalProcessed,
+	}, nil
+}
+
+// DetectNovelty checks if a log pattern is novel/unseen.
+func (c *Client) DetectNovelty(ctx context.Context, record *models.LogRecord, threshold float32) (*NoveltyResult, error) {
+	if !c.IsConnected() {
+		if err := c.Connect(ctx); err != nil {
+			return nil, err
+		}
+	}
+
+	req := &mlpb.NoveltyRequest{
+		Record:    convertToMLPBRecord(record),
+		Threshold: threshold,
+	}
+
+	resp, err := c.mlClient.DetectNovelty(ctx, req)
+	if err != nil {
+		c.logger.Error("novelty_rpc_failed", zap.Error(err))
+		return nil, fmt.Errorf("detect novelty RPC failed: %w", err)
+	}
+
+	c.logger.Info("novelty_check_completed",
+		zap.Bool("is_novel", resp.IsNovel),
+		zap.Float32("novelty_score", resp.NoveltyScore),
+	)
+
+	return &NoveltyResult{
+		IsNovel:           resp.IsNovel,
+		NoveltyScore:      resp.NoveltyScore,
+		ClosestClusterID:  resp.ClosestClusterId,
+		DistanceToCluster: resp.DistanceToCluster,
+		Reason:            resp.Reason,
+	}, nil
+}
+
+// Health checks the ML service health.
+func (c *Client) Health(ctx context.Context, detailed bool) (*HealthResponse, error) {
+	if !c.IsConnected() {
+		if err := c.Connect(ctx); err != nil {
+			return nil, err
+		}
+	}
+
+	req := &mlpb.HealthRequest{
+		Detailed: detailed,
+	}
+
+	resp, err := c.mlClient.Health(ctx, req)
+	if err != nil {
+		c.logger.Error("health_rpc_failed", zap.Error(err))
+		return nil, fmt.Errorf("health RPC failed: %w", err)
+	}
+
+	components := make([]ComponentHealth, 0, len(resp.Components))
+	for _, comp := range resp.Components {
+		components = append(components, ComponentHealth{
+			Name:    comp.Name,
+			Healthy: comp.Healthy,
+			Message: comp.Message,
+		})
+	}
+
+	return &HealthResponse{
+		Healthy:    resp.Healthy,
+		Version:    resp.Version,
+		Components: components,
+	}, nil
+}
+
+// convertFromMLPBRecord converts a proto LogRecord to models.LogRecord.
+func convertFromMLPBRecord(record *mlpb.LogRecord) *models.LogRecord {
+	if record == nil {
+		return nil
+	}
+
+	var ts *time.Time
+	if record.Timestamp != nil {
+		t := record.Timestamp.AsTime()
+		ts = &t
+	}
+
+	var attrs map[string]any
+	if record.AttrsJson != "" {
+		_ = json.Unmarshal([]byte(record.AttrsJson), &attrs)
+	}
+
+	return &models.LogRecord{
+		Message:    record.Message,
+		Normalized: record.Normalized,
+		Level:      record.Level,
+		Source:     record.Source,
+		Timestamp:  ts,
+		Attrs:      attrs,
+	}
+}
+
 // withRetry executes a function with retry logic.
 // nolint:unused // Will be used in M2 for embedding operations with retry
 func (c *Client) withRetry(ctx context.Context, operation string, fn func() error) error {
