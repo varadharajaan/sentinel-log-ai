@@ -1118,13 +1118,24 @@ class GRPCMLServiceServicer:
             
             # Convert to proto
             proto_clusters = []
-            for summary in result.cluster_summaries:
+            for summary in result.summaries:
+                # Get representative message (first one from the list)
+                representative = ""
+                if summary.representative_messages:
+                    representative = summary.representative_messages[0]
+                
+                # Extract keywords from metadata if available
+                keywords = summary.metadata.get("keywords", []) if summary.metadata else []
+                
+                # Compute cohesion from metadata or default
+                cohesion = summary.metadata.get("cohesion", 0.0) if summary.metadata else 0.0
+                
                 proto_clusters.append(pb2.ClusterSummary(
-                    cluster_id=str(summary.cluster_id),
+                    cluster_id=str(summary.id),
                     size=summary.size,
-                    representative=summary.representative,
-                    keywords=list(summary.keywords) if summary.keywords else [],
-                    cohesion=summary.cohesion,
+                    representative=representative,
+                    keywords=list(keywords) if keywords else [],
+                    cohesion=float(cohesion),
                     is_new=getattr(summary, 'is_new', False),
                 ))
             
