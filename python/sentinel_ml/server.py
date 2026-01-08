@@ -1161,24 +1161,71 @@ class GRPCMLServiceServicer:
         logger.info("grpc_novelty_request")
         
         try:
-            record = self._proto_to_log_record(request.record)
+            # Convert proto to dict, preprocess, and embed
+            record_dict = self._log_record_to_dict(request.record)
+            processed = self._servicer.preprocess_records([record_dict])
+            embeddings, _ = self._servicer.embed_records(processed)
+            
+            # Auto-fit novelty detector if not fitted yet
+            # Use stored vector embeddings as reference if available
+            if not self._servicer._novelty_fitted:
+                # Try to use vector store contents as reference
+                vector_store = self._servicer._ensure_vector_store()
+                if hasattr(vector_store, 'get_all_embeddings'):
+                    ref_embeddings = vector_store.get_all_embeddings()
+                    if ref_embeddings is not None and len(ref_embeddings) > 0:
+                        self._servicer.fit_novelty_detector(ref_embeddings)
+                        logger.info("novelty_detector_auto_fitted", n_reference=len(ref_embeddings))
+                
+                # If still not fitted, use clustering results
+                if not self._servicer._novelty_fitted:
+                    clustering = self._servicer._ensure_clustering_service()
+                    if hasattr(clustering, 'get_cluster_embeddings'):
+                        cluster_embeds = clustering.get_cluster_embeddings()
+                        if cluster_embeds is not None and len(cluster_embeds) > 0:
+                            self._servicer.fit_novelty_detector(cluster_embeds)
+                
+                # Last resort: fit with the current sample (everything will be "not novel")
+                if not self._servicer._novelty_fitted:
+                    self._servicer.fit_novelty_detector(embeddings)
+                    logger.warning("novelty_detector_fitted_with_single_sample")
+            
+            # Detect novelty
             result = self._servicer.detect_novelty(
-                record,
+                embeddings=embeddings,
+                records=processed,
                 threshold=request.threshold or 0.5,
             )
             
+            # Check if this specific sample is novel
+            is_novel = result.n_novel > 0
+            novelty_score = 0.0
+            if result.scores is not None and len(result.scores) > 0:
+                novelty_score = float(result.scores[0])
+            
+            closest_cluster_id = ""
+            distance_to_cluster = 0.0
+            reason = ""
+            
+            # Get closest cluster info from novel_scores if available
+            if result.novel_scores and len(result.novel_scores) > 0:
+                novel_sample = result.novel_scores[0]
+                closest_cluster_id = getattr(novel_sample, 'nearest_cluster_id', '') or ""
+                distance_to_cluster = getattr(novel_sample, 'distance_to_nearest', 0.0) or 0.0
+                reason = getattr(novel_sample, 'explanation', '') or ""
+            
             logger.info(
                 "grpc_novelty_response",
-                is_novel=result.is_novel,
-                novelty_score=result.novelty_score,
+                is_novel=is_novel,
+                novelty_score=novelty_score,
             )
             
             return pb2.NoveltyResponse(
-                is_novel=result.is_novel,
-                novelty_score=result.novelty_score,
-                closest_cluster_id=result.closest_cluster_id or "",
-                distance_to_cluster=result.distance_to_cluster or 0.0,
-                reason=result.reason or "",
+                is_novel=is_novel,
+                novelty_score=novelty_score,
+                closest_cluster_id=closest_cluster_id,
+                distance_to_cluster=distance_to_cluster,
+                reason=reason,
             )
         except Exception as e:
             logger.error("grpc_novelty_error", error=str(e))
