@@ -354,7 +354,8 @@ class OllamaProvider(LLMProvider):
     """
     Ollama LLM provider for local model inference.
 
-    Uses the Ollama REST API to generate completions with locally-hosted models.
+    Uses the official Ollama Python client for generating completions
+    with locally-hosted models.
     """
 
     def __init__(
@@ -377,6 +378,7 @@ class OllamaProvider(LLMProvider):
         self._base_url = base_url.rstrip("/")
         self._timeout = timeout
         self._max_retries = max_retries
+        self._client: Any = None
 
         logger.info(
             "ollama_provider_initialized",
@@ -384,6 +386,19 @@ class OllamaProvider(LLMProvider):
             base_url=base_url,
             timeout=timeout,
         )
+
+    def _get_client(self) -> Any:
+        """Get or create the Ollama client."""
+        if self._client is None:
+            try:
+                import ollama
+                self._client = ollama.Client(host=self._base_url, timeout=self._timeout)
+            except ImportError as e:
+                raise LLMError.provider_error(
+                    "ollama",
+                    "ollama package not installed. Run: pip install ollama",
+                ) from e
+        return self._client
 
     @property
     def name(self) -> str:
@@ -415,10 +430,6 @@ class OllamaProvider(LLMProvider):
         Raises:
             LLMError: If generation fails.
         """
-        import urllib.error
-        import urllib.request
-
-        url = f"{self._base_url}/api/generate"
         options: dict[str, Any] = {
             "temperature": temperature,
         }
@@ -426,32 +437,19 @@ class OllamaProvider(LLMProvider):
         if max_tokens is not None:
             options["num_predict"] = max_tokens
 
-        payload: dict[str, Any] = {
-            "model": self._model,
-            "prompt": prompt,
-            "stream": False,
-            "options": options,
-        }
-
-        data = json.dumps(payload).encode("utf-8")
-
         last_error: Exception | None = None
         for attempt in range(self._max_retries):
             try:
-                request = urllib.request.Request(
-                    url,
-                    data=data,
-                    headers={"Content-Type": "application/json"},
-                    method="POST",
+                client = self._get_client()
+                response = client.generate(
+                    model=self._model,
+                    prompt=prompt,
+                    options=options,
                 )
 
-                with urllib.request.urlopen(request, timeout=self._timeout) as response:
-                    result = json.loads(response.read().decode("utf-8"))
-
-                response_text = result.get("response", "")
-                # Ollama provides token counts in some versions
-                prompt_tokens = result.get("prompt_eval_count", 0)
-                completion_tokens = result.get("eval_count", 0)
+                response_text = response.get("response", "")
+                prompt_tokens = response.get("prompt_eval_count", 0)
+                completion_tokens = response.get("eval_count", 0)
 
                 logger.debug(
                     "ollama_generation_complete",
@@ -463,7 +461,7 @@ class OllamaProvider(LLMProvider):
 
                 return response_text, prompt_tokens, completion_tokens
 
-            except urllib.error.URLError as e:
+            except Exception as e:
                 last_error = e
                 logger.warning(
                     "ollama_request_failed",
@@ -474,19 +472,6 @@ class OllamaProvider(LLMProvider):
                 if attempt < self._max_retries - 1:
                     time.sleep(2**attempt)  # Exponential backoff
 
-            except json.JSONDecodeError as e:
-                raise LLMError.invalid_response(f"Failed to parse response: {e}") from e
-
-            except TimeoutError as e:
-                last_error = e
-                logger.warning(
-                    "ollama_request_timeout",
-                    attempt=attempt + 1,
-                    timeout=self._timeout,
-                )
-                if attempt < self._max_retries - 1:
-                    time.sleep(2**attempt)
-
         raise LLMError.provider_error(
             "ollama",
             f"Failed after {self._max_retries} attempts: {last_error}",
@@ -494,18 +479,13 @@ class OllamaProvider(LLMProvider):
 
     def is_available(self) -> bool:
         """Check if Ollama is available."""
-        import urllib.error
-        import urllib.request
-
         try:
-            url = f"{self._base_url}/api/tags"
-            request = urllib.request.Request(url, method="GET")
-            with urllib.request.urlopen(request, timeout=5) as response:
-                data = json.loads(response.read().decode("utf-8"))
-                models = [m.get("name", "") for m in data.get("models", [])]
-                # Check if our model is available
-                return any(self._model in m for m in models)
-        except (urllib.error.URLError, TimeoutError, json.JSONDecodeError):
+            client = self._get_client()
+            models_response = client.list()
+            models = [m.get("name", "") for m in models_response.get("models", [])]
+            # Check if our model is available
+            return any(self._model in m for m in models)
+        except Exception:
             return False
 
 
