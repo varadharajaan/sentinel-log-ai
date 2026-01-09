@@ -49,6 +49,7 @@ ml = [
 llm = [
     "ollama>=0.1",
     "httpx>=0.25",
+    "llama-cpp-python>=0.2",
 ]
 dev = [
     "pytest>=7.4",

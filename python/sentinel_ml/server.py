@@ -37,6 +37,16 @@ from sentinel_ml.novelty import NoveltyResult, NoveltyService, NoveltyStats
 from sentinel_ml.preprocessing import PreprocessingService
 from sentinel_ml.vectorstore import SearchResult, VectorStore, VectorStoreStats
 
+# Import generated proto types
+try:
+    from sentinel_ml.generated.proto.ml.v1 import ml_service_pb2 as pb2
+    from sentinel_ml.generated.proto.ml.v1 import ml_service_pb2_grpc as pb2_grpc
+    PROTO_AVAILABLE = True
+except ImportError:
+    PROTO_AVAILABLE = False
+    pb2 = None  # type: ignore
+    pb2_grpc = None  # type: ignore
+
 if TYPE_CHECKING:
     from collections.abc import Callable
 
@@ -161,56 +171,67 @@ class MLServiceServicer:
         )
 
     def _ensure_embedding_service(self) -> EmbeddingService:
-        """Lazy initialize embedding service."""
+        """Lazy initialize embedding service (thread-safe)."""
         if not self._embedding_initialized:
-            logger.info("initializing_embedding_service")
-            self._embedding_service = EmbeddingService.from_config(self.config.embedding)
-            self._embedding_initialized = True
+            with self._lock:
+                # Double-check after acquiring lock
+                if not self._embedding_initialized:
+                    logger.info("initializing_embedding_service")
+                    self._embedding_service = EmbeddingService.from_config(self.config.embedding)
+                    self._embedding_initialized = True
         assert self._embedding_service is not None
         return self._embedding_service
 
     def _ensure_vector_store(self) -> VectorStore:
-        """Lazy initialize vector store."""
+        """Lazy initialize vector store (thread-safe)."""
         if not self._vector_store_initialized:
-            logger.info("initializing_vector_store")
-            self._vector_store = VectorStore.from_config(self.config.vector_store)
-            self._vector_store_initialized = True
+            with self._lock:
+                if not self._vector_store_initialized:
+                    logger.info("initializing_vector_store")
+                    self._vector_store = VectorStore.from_config(self.config.vector_store)
+                    self._vector_store_initialized = True
         assert self._vector_store is not None
         return self._vector_store
 
     def _ensure_clustering_service(self) -> ClusteringService:
-        """Lazy initialize clustering service."""
+        """Lazy initialize clustering service (thread-safe)."""
         if not self._clustering_initialized:
-            logger.info("initializing_clustering_service")
-            self._clustering_service = ClusteringService.from_config(
-                config=self.config.clustering,
-                use_mock=False,
-            )
-            self._clustering_initialized = True
+            with self._lock:
+                if not self._clustering_initialized:
+                    logger.info("initializing_clustering_service")
+                    self._clustering_service = ClusteringService.from_config(
+                        config=self.config.clustering,
+                        use_mock=False,
+                    )
+                    self._clustering_initialized = True
         assert self._clustering_service is not None
         return self._clustering_service
 
     def _ensure_novelty_service(self) -> NoveltyService:
-        """Lazy initialize novelty detection service."""
+        """Lazy initialize novelty detection service (thread-safe)."""
         if not self._novelty_initialized:
-            logger.info("initializing_novelty_service")
-            self._novelty_service = NoveltyService.from_config(
-                config=self.config.novelty,
-                use_mock=False,
-            )
-            self._novelty_initialized = True
+            with self._lock:
+                if not self._novelty_initialized:
+                    logger.info("initializing_novelty_service")
+                    self._novelty_service = NoveltyService.from_config(
+                        config=self.config.novelty,
+                        use_mock=False,
+                    )
+                    self._novelty_initialized = True
         assert self._novelty_service is not None
         return self._novelty_service
 
     def _ensure_llm_service(self) -> LLMService:
-        """Lazy initialize LLM service."""
+        """Lazy initialize LLM service (thread-safe)."""
         if not self._llm_initialized:
-            logger.info("initializing_llm_service")
-            self._llm_service = LLMService.from_config(
-                config=self.config.llm,
-                use_mock=False,
-            )
-            self._llm_initialized = True
+            with self._lock:
+                if not self._llm_initialized:
+                    logger.info("initializing_llm_service")
+                    self._llm_service = LLMService.from_config(
+                        config=self.config.llm,
+                        use_mock=False,
+                    )
+                    self._llm_initialized = True
         assert self._llm_service is not None
         return self._llm_service
 
@@ -952,6 +973,336 @@ class MLServiceServicer:
             return self._metrics.to_dict()
 
 
+class GRPCMLServiceServicer:
+    """
+    gRPC servicer that implements the proto-defined MLService interface.
+    
+    Bridges proto messages to the MLServiceServicer implementation.
+    """
+
+    def __init__(self, servicer: MLServiceServicer) -> None:
+        """Initialize with the underlying servicer."""
+        self._servicer = servicer
+
+    def _proto_to_log_record(self, proto_record: Any) -> LogRecord:
+        """Convert proto LogRecord to internal LogRecord."""
+        timestamp = None
+        if proto_record.timestamp.seconds > 0:
+            from datetime import datetime, timezone
+            timestamp = datetime.fromtimestamp(
+                proto_record.timestamp.seconds + proto_record.timestamp.nanos / 1e9,
+                tz=timezone.utc
+            )
+        
+        attrs = {}
+        if proto_record.attrs_json:
+            import json
+            try:
+                attrs = json.loads(proto_record.attrs_json)
+            except json.JSONDecodeError:
+                pass
+
+        return LogRecord(
+            id=proto_record.id or None,
+            message=proto_record.message,
+            raw=proto_record.message,
+            normalized=proto_record.normalized or None,
+            level=proto_record.level or None,
+            source=proto_record.source or "unknown",
+            timestamp=timestamp,
+            attrs=attrs,
+        )
+
+    def _log_record_to_dict(self, proto_record: Any) -> dict[str, Any]:
+        """Convert proto LogRecord to dict for preprocessing."""
+        return {
+            "id": proto_record.id or None,
+            "message": proto_record.message,
+            "raw": proto_record.message,
+            "normalized": proto_record.normalized or None,
+            "level": proto_record.level or None,
+            "source": proto_record.source or "unknown",
+            "attrs_json": proto_record.attrs_json or "{}",
+        }
+
+    def Embed(self, request: Any, context: Any) -> Any:
+        """Handle Embed RPC - embed log records."""
+        logger.info("grpc_embed_request", record_count=len(request.records))
+        
+        try:
+            # Convert proto records to dicts for preprocessing
+            records = [self._log_record_to_dict(r) for r in request.records]
+            
+            # Preprocess and embed
+            processed = self._servicer.preprocess_records(records)
+            embeddings, cache_hits = self._servicer.embed_records(
+                processed, 
+                use_cache=request.use_cache
+            )
+            
+            # Flatten embeddings for proto
+            flat_embeddings = embeddings.flatten().tolist()
+            embedding_dim = embeddings.shape[1] if embeddings.ndim > 1 else 0
+            
+            logger.info(
+                "grpc_embed_response",
+                record_count=len(records),
+                embedding_dim=embedding_dim,
+                cache_hits=cache_hits,
+            )
+            
+            return pb2.EmbedResponse(
+                embeddings=flat_embeddings,
+                embedding_dim=embedding_dim,
+                cache_hits=cache_hits,
+            )
+        except Exception as e:
+            logger.error("grpc_embed_error", error=str(e))
+            context.set_code(grpc.StatusCode.INTERNAL)
+            context.set_details(str(e))
+            return pb2.EmbedResponse()
+
+    def EmbedStream(self, request_iterator: Any, context: Any) -> Any:
+        """Handle streaming Embed RPC."""
+        for request in request_iterator:
+            yield self.Embed(request, context)
+
+    def Search(self, request: Any, context: Any) -> Any:
+        """Handle Search RPC - find similar logs."""
+        logger.info("grpc_search_request", top_k=request.top_k)
+        
+        try:
+            query_record = self._proto_to_log_record(request.query)
+            results = self._servicer.search_similar(
+                query_record,
+                top_k=request.top_k or 10,
+                min_similarity=request.min_similarity or 0.0,
+            )
+            
+            proto_results = []
+            for result in results:
+                proto_results.append(pb2.SearchResult(
+                    record=pb2.LogRecord(
+                        id=result.record.id or "",
+                        message=result.record.message or "",
+                        normalized=result.record.normalized or "",
+                        level=result.record.level or "",
+                        source=result.record.source or "",
+                    ),
+                    similarity=result.similarity,
+                    distance=result.distance,
+                ))
+            
+            return pb2.SearchResponse(results=proto_results)
+        except Exception as e:
+            logger.error("grpc_search_error", error=str(e))
+            context.set_code(grpc.StatusCode.INTERNAL)
+            context.set_details(str(e))
+            return pb2.SearchResponse()
+
+    def Cluster(self, request: Any, context: Any) -> Any:
+        """Handle Cluster RPC - cluster log records."""
+        logger.info("grpc_cluster_request", record_count=len(request.records))
+        
+        try:
+            # Convert and preprocess records
+            records = [self._log_record_to_dict(r) for r in request.records]
+            processed = self._servicer.preprocess_records(records)
+            
+            # Embed and cluster
+            embeddings, _ = self._servicer.embed_records(processed)
+            result = self._servicer.cluster_logs(
+                embeddings=embeddings,
+                records=processed,
+            )
+            
+            # Convert to proto
+            proto_clusters = []
+            for summary in result.summaries:
+                # Get representative message (first one from the list)
+                representative = ""
+                if summary.representative_messages:
+                    representative = summary.representative_messages[0]
+                
+                # Extract keywords from metadata if available
+                keywords = summary.metadata.get("keywords", []) if summary.metadata else []
+                
+                # Compute cohesion from metadata or default
+                cohesion = summary.metadata.get("cohesion", 0.0) if summary.metadata else 0.0
+                
+                proto_clusters.append(pb2.ClusterSummary(
+                    cluster_id=str(summary.id),
+                    size=summary.size,
+                    representative=representative,
+                    keywords=list(keywords) if keywords else [],
+                    cohesion=float(cohesion),
+                    is_new=getattr(summary, 'is_new', False),
+                ))
+            
+            logger.info(
+                "grpc_cluster_response",
+                n_clusters=result.n_clusters,
+                n_noise=result.n_noise,
+            )
+            
+            return pb2.ClusterResponse(
+                clusters=proto_clusters,
+                noise_count=result.n_noise,
+                total_processed=len(processed),
+            )
+        except Exception as e:
+            logger.error("grpc_cluster_error", error=str(e))
+            context.set_code(grpc.StatusCode.INTERNAL)
+            context.set_details(str(e))
+            return pb2.ClusterResponse()
+
+    def DetectNovelty(self, request: Any, context: Any) -> Any:
+        """Handle DetectNovelty RPC - check if a log is novel."""
+        logger.info("grpc_novelty_request")
+        
+        try:
+            # Convert proto to dict, preprocess, and embed
+            record_dict = self._log_record_to_dict(request.record)
+            processed = self._servicer.preprocess_records([record_dict])
+            embeddings, _ = self._servicer.embed_records(processed)
+            
+            # Auto-fit novelty detector if not fitted yet
+            # Use stored vector embeddings as reference if available
+            if not self._servicer._novelty_fitted:
+                # Try to use vector store contents as reference
+                vector_store = self._servicer._ensure_vector_store()
+                if hasattr(vector_store, 'get_all_embeddings'):
+                    ref_embeddings = vector_store.get_all_embeddings()
+                    if ref_embeddings is not None and len(ref_embeddings) > 0:
+                        self._servicer.fit_novelty_detector(ref_embeddings)
+                        logger.info("novelty_detector_auto_fitted", n_reference=len(ref_embeddings))
+                
+                # If still not fitted, use clustering results
+                if not self._servicer._novelty_fitted:
+                    clustering = self._servicer._ensure_clustering_service()
+                    if hasattr(clustering, 'get_cluster_embeddings'):
+                        cluster_embeds = clustering.get_cluster_embeddings()
+                        if cluster_embeds is not None and len(cluster_embeds) > 0:
+                            self._servicer.fit_novelty_detector(cluster_embeds)
+                
+                # Last resort: fit with the current sample (everything will be "not novel")
+                if not self._servicer._novelty_fitted:
+                    self._servicer.fit_novelty_detector(embeddings)
+                    logger.warning("novelty_detector_fitted_with_single_sample")
+            
+            # Detect novelty
+            result = self._servicer.detect_novelty(
+                embeddings=embeddings,
+                records=processed,
+                threshold=request.threshold or 0.5,
+            )
+            
+            # Check if this specific sample is novel
+            is_novel = result.n_novel > 0
+            novelty_score = 0.0
+            if result.scores is not None and len(result.scores) > 0:
+                novelty_score = float(result.scores[0])
+            
+            closest_cluster_id = ""
+            distance_to_cluster = 0.0
+            reason = ""
+            
+            # Get closest cluster info from novel_scores if available
+            if result.novel_scores and len(result.novel_scores) > 0:
+                novel_sample = result.novel_scores[0]
+                closest_cluster_id = getattr(novel_sample, 'nearest_cluster_id', '') or ""
+                distance_to_cluster = getattr(novel_sample, 'distance_to_nearest', 0.0) or 0.0
+                reason = getattr(novel_sample, 'explanation', '') or ""
+            
+            logger.info(
+                "grpc_novelty_response",
+                is_novel=is_novel,
+                novelty_score=novelty_score,
+            )
+            
+            return pb2.NoveltyResponse(
+                is_novel=is_novel,
+                novelty_score=novelty_score,
+                closest_cluster_id=closest_cluster_id,
+                distance_to_cluster=distance_to_cluster,
+                reason=reason,
+            )
+        except Exception as e:
+            logger.error("grpc_novelty_error", error=str(e))
+            context.set_code(grpc.StatusCode.INTERNAL)
+            context.set_details(str(e))
+            return pb2.NoveltyResponse()
+
+    def Explain(self, request: Any, context: Any) -> Any:
+        """Handle Explain RPC - get LLM explanation."""
+        logger.info("grpc_explain_request", cluster_id=request.cluster_id)
+        
+        try:
+            # Get sample logs if provided
+            sample_records = []
+            if request.sample_logs:
+                sample_records = [self._proto_to_log_record(r) for r in request.sample_logs]
+            
+            # For now, explain the first sample log
+            if sample_records:
+                explanation = self._servicer.explain_error(
+                    record=sample_records[0],
+                    context=request.context,
+                )
+            else:
+                # TODO: Support cluster_id lookup
+                return pb2.ExplainResponse(
+                    root_cause="No sample logs provided",
+                    confidence="LOW",
+                    confidence_score=0.0,
+                )
+            
+            logger.info(
+                "grpc_explain_response",
+                confidence=explanation.confidence,
+            )
+            
+            return pb2.ExplainResponse(
+                root_cause=explanation.root_cause or explanation.summary or "",
+                next_steps=list(explanation.suggested_actions) if explanation.suggested_actions else [],
+                remediation=explanation.summary or "",
+                confidence=explanation.severity.value.upper() if explanation.severity else "MEDIUM",
+                confidence_score=explanation.confidence or 0.0,
+                confidence_reasoning=f"Based on {explanation.model} analysis",
+                raw_response=str(explanation.metadata.get('raw_response', "")),
+            )
+        except Exception as e:
+            logger.error("grpc_explain_error", error=str(e))
+            context.set_code(grpc.StatusCode.INTERNAL)
+            context.set_details(str(e))
+            return pb2.ExplainResponse()
+
+    def Health(self, request: Any, context: Any) -> Any:
+        """Handle Health RPC - check service health."""
+        logger.debug("grpc_health_request", detailed=request.detailed)
+        
+        try:
+            health = self._servicer.health_check(detailed=request.detailed)
+            
+            proto_components = []
+            if request.detailed and "components" in health:
+                for comp in health["components"]:
+                    proto_components.append(pb2.ComponentHealth(
+                        name=comp["name"],
+                        healthy=comp["healthy"],
+                        message=comp.get("message", ""),
+                    ))
+            
+            return pb2.HealthResponse(
+                healthy=health.get("healthy", True),
+                version=health.get("version", "unknown"),
+                components=proto_components,
+            )
+        except Exception as e:
+            logger.error("grpc_health_error", error=str(e))
+            return pb2.HealthResponse(healthy=False, version="error")
+
+
 class GRPCServer:
     """
     High-level gRPC server wrapper.
@@ -985,19 +1336,34 @@ class GRPCServer:
 
     def _create_server(self) -> grpc.Server:
         """Create the underlying gRPC server."""
+        # Use -1 for unlimited message size, or explicit large value
+        # Note: gRPC Python uses -1 for unlimited
+        max_msg_size = -1  # Unlimited
+        
+        logger.info(
+            "grpc_server_options",
+            max_message_size=max_msg_size,
+            max_workers=self.config.server.max_workers,
+        )
+        
         server = grpc.server(
             futures.ThreadPoolExecutor(max_workers=self.config.server.max_workers),
             options=[
-                ("grpc.max_send_message_length", self.config.server.max_message_size),
-                ("grpc.max_receive_message_length", self.config.server.max_message_size),
+                ("grpc.max_send_message_length", max_msg_size),
+                ("grpc.max_receive_message_length", max_msg_size),
                 ("grpc.keepalive_time_ms", 30000),
                 ("grpc.keepalive_timeout_ms", 10000),
                 ("grpc.keepalive_permit_without_calls", True),
             ],
         )
 
-        # TODO: Add servicer once proto is compiled
-        # ml_pb2_grpc.add_MLServiceServicer_to_server(self.servicer, server)
+        # Register the gRPC servicer
+        if PROTO_AVAILABLE:
+            grpc_servicer = GRPCMLServiceServicer(self.servicer)
+            pb2_grpc.add_MLServiceServicer_to_server(grpc_servicer, server)
+            logger.info("grpc_servicer_registered")
+        else:
+            logger.warning("proto_not_available", message="gRPC servicer not registered - run proto generation first")
 
         address = f"{self.config.server.host}:{self.config.server.port}"
         server.add_insecure_port(address)

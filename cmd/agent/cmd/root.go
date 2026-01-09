@@ -40,7 +40,6 @@ func init() {
 	rootCmd.AddCommand(setupIngestCmd())
 	rootCmd.AddCommand(analyzeCmd)
 	rootCmd.AddCommand(novelCmd)
-	rootCmd.AddCommand(explainCmd)
 	rootCmd.AddCommand(serveCmd)
 }
 
@@ -68,21 +67,6 @@ Use --follow to continuously watch for new anomalies.`,
 		follow, _ := cmd.Flags().GetBool("follow")
 		fmt.Printf("Detecting novel patterns (follow=%v)\n", follow)
 		// TODO: Implement novelty detection
-		return nil
-	},
-}
-
-// explainCmd represents the explain command
-var explainCmd = &cobra.Command{
-	Use:   "explain [cluster-id]",
-	Short: "Get LLM explanation for a log cluster",
-	Long: `Use LLM to generate a human-readable explanation for a log cluster.
-Includes probable root cause, suggested next steps, and confidence score.`,
-	Args: cobra.ExactArgs(1),
-	RunE: func(cmd *cobra.Command, args []string) error {
-		clusterID := args[0]
-		fmt.Printf("Explaining cluster: %s\n", clusterID)
-		// TODO: Implement LLM explanation
 		return nil
 	},
 }
